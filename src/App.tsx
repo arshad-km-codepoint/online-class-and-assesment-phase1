@@ -29,7 +29,7 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50/70 font-sans">
       {/* Sidebar Navigation */}
       <Sidebar />
 
@@ -39,7 +39,7 @@ const MainContent: React.FC = () => {
         <Header />
 
         {/* View Container */}
-        <main className="flex-1 overflow-y-auto bg-slate-100">
+        <main className="flex-1 overflow-y-auto bg-slate-50/70">
           {/* Teacher Views */}
           {activeTab === 'online-classes' && <OnlineClassesListView />}
           {activeTab === 'online-class-assessments' && <OnlineClassAssessmentsView />}

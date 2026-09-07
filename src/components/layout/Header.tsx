@@ -1,20 +1,51 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Bell, Moon } from 'lucide-react';
 import { useExam } from '../../context/ExamContext';
 
 export const Header: React.FC = () => {
-  const { activeTab, portalMode, setActiveTab } = useExam();
-  const pages: Record<string, [string, string]> = {
-    'online-classes': ['Online Classes', 'Schedule and manage your online classrooms'],
-    'online-class-assessments': ['Online Class Assessments', 'Manage and share interactive class assessments'],
-    'question-pool': ['Question Pool', 'Create and organize reusable assessment questions'],
-    'create-class-assessment': ['Create Assessment', 'Build questions for your online classes'],
-    'create-online-class': ['Schedule Online Class', 'Set up your class, meeting platform, and materials'],
-    'student-online-classes': ['Online Classes', 'Join your classes and take part in class assessments'],
-  };
-  const [title, subtitle] = pages[activeTab] || pages['online-classes'];
-  return <header className="min-h-16 bg-white border-b border-slate-200 pl-16 pr-3 md:px-6 py-3 flex items-center justify-between gap-4 shadow-xs">
-    <div><h1 className="text-base font-bold text-slate-900">{title}</h1><p className="text-xs text-slate-500">{subtitle}</p></div>
-    {portalMode === 'teacher' && <button aria-label="Schedule Class" onClick={() => setActiveTab('create-online-class')} className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shrink-0"><Plus size={14} /><span className="hidden sm:inline">Schedule Class</span></button>}
-  </header>;
+  const { addToast } = useExam();
+
+  return (
+    <header className="h-14 bg-white border-b border-slate-200/90 px-4 md:px-6 flex items-center justify-between gap-4 shrink-0 shadow-2xs">
+      {/* Spacer for mobile menu toggle alignment */}
+      <div className="w-8 md:hidden" />
+
+      {/* Right Controls Matching Reference Screenshot */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+        {/* Moon / Dark Mode Icon */}
+        <button
+          type="button"
+          aria-label="Theme mode"
+          onClick={() => addToast('Appearance', 'Light mode is currently active.', 'info')}
+          className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <Moon size={17} />
+        </button>
+
+        {/* Notification Bell with Badge */}
+        <button
+          type="button"
+          aria-label="Notifications"
+          onClick={() => addToast('Notifications', 'You have 6 unread notifications.', 'info')}
+          className="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <Bell size={17} />
+          <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white">
+            6
+          </span>
+        </button>
+
+        {/* Top Right User Profile Block */}
+        <div className="flex items-center gap-2.5 pl-1.5">
+          <div className="hidden lg:block text-right">
+            <p className="text-xs font-bold text-slate-900 leading-tight">SuperAdmin</p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">SUPER_ADMIN</p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-extrabold flex items-center justify-center text-xs shadow-xs ring-2 ring-orange-100">
+            SU
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 };

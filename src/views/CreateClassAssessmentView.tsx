@@ -142,8 +142,8 @@ export const CreateClassAssessmentView: React.FC = () => {
     setSectionAnnouncement(`Section removed. Its questions were moved to ${sectionLabel(destination)}.`);
   };
   const steps = ['Assessment details', 'Build questions', 'Review & share'];
-  const typeLabels: Record<LiveAssessmentQuestionType, string> = {
-    short_answer: 'Short answer', mcq: 'Single choice', mmcq: 'Multiple choice', fill_in_blanks: 'Fill in the blanks',
+  const typeLabels: Record<string, string> = {
+    mcq: 'Single choice', mmcq: 'Multiple choice', fill_in_blanks: 'Fill in the blanks',
     match_following: 'Matching pairs', step_ordering: 'Sequence ordering',
   };
   const goToStep = (next: number) => {
@@ -157,7 +157,7 @@ export const CreateClassAssessmentView: React.FC = () => {
   // Calculate total marks automatically
   const totalCalculatedMarks = questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
 
-  // Add Question Handlers for the 4 Question Types
+  // Add Question Handlers for Question Types
   const handleAddMCQ = () => {
     const newQ: LiveAssessmentQuestion = {
       sectionId: activeSection.id,
@@ -165,6 +165,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       type: 'mcq',
       prompt: 'New Multiple Choice Question Prompt...',
       marks: 2,
+      bloomsTaxonomy: 'Remember',
       options: ['Option A', 'Option B', 'Option C', 'Option D'],
       correctOptionIndex: 0,
       explanation: 'Detailed explanation for the correct choice...',
@@ -181,6 +182,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       type: 'mmcq',
       prompt: 'Select ALL correct statements that apply (Multiple Choices):',
       marks: 3,
+      bloomsTaxonomy: 'Analyze',
       options: ['Statement A', 'Statement B', 'Statement C', 'Statement D'],
       correctOptionIndices: [0, 1],
       minSelections: 2,
@@ -198,6 +200,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       type: 'fill_in_blanks',
       prompt: 'Fill in the blanks to complete the statement:',
       marks: 3,
+      bloomsTaxonomy: 'Understand',
       blankSlots: [
         {
           id: 'b-1',
@@ -229,6 +232,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       type: 'match_following',
       prompt: 'Match each item in Column A with its corresponding item in Column B:',
       marks: 4,
+      bloomsTaxonomy: 'Understand',
       matchingPairs: [
         { id: 'p-1', leftText: 'Column A - Item 1', rightText: 'Column B - Match 1' },
         { id: 'p-2', leftText: 'Column A - Item 2', rightText: 'Column B - Match 2' },
@@ -249,6 +253,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       prompt:
         'Arrange the following solution steps in their exact logical sequence (Distractor/incorrect steps are mixed in):',
       marks: 4,
+      bloomsTaxonomy: 'Apply',
       orderedSteps: [
         'Step 1: Write equation in standard form: 2x² + 5x - 3 = 0',
         'Step 2: Split middle term using product-sum rule: 2x² + 6x - x - 3 = 0',
@@ -706,6 +711,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       <QuestionPoolBrowser usedIds={questions.flatMap(q => q.poolQuestionId ? [q.poolQuestionId] : [])} onAdd={items => {
         const additions = items.filter(item => !questions.some(q => q.poolQuestionId === item.id)).map(item => ({
           ...structuredClone(item), id: crypto.randomUUID(), poolQuestionId: item.id, sectionId: activeSection.id,
+          bloomsTaxonomy: item.bloomsTaxonomy || 'Apply',
         }));
         setQuestions(prev => [...prev, ...additions]);
         if (additions[0]) setSelectedQuestionId(additions[0].id);
@@ -827,7 +833,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                   onDragStart={event => { setDraggedQuestionId(q.id); setDropTarget(null); event.dataTransfer.setData('text/plain', q.id); event.dataTransfer.effectAllowed = 'move'; }}
                   onDragEnd={() => {setDraggedQuestionId(null); setDropTarget(null);}}
                   className={`w-full flex gap-2 rounded-lg p-2.5 text-left cursor-grab active:cursor-grabbing ${draggedQuestionId === q.id ? 'opacity-30 ring-1 ring-dashed ring-blue-300 bg-blue-50' : ''} ${selectedId === q.id ? 'bg-white ring-1 ring-blue-300 shadow-xs' : 'hover:bg-slate-100'}`}>
-                  <GripVertical size={14} className="shrink-0 text-slate-400 mt-1" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-800">{orderedQuestions.indexOf(q) + 1}. {q.prompt || 'Untitled question'}</span><span className="text-xs text-slate-500">{typeLabels[q.type]} · {q.marks} marks</span></span>
+                  <GripVertical size={14} className="shrink-0 text-slate-400 mt-1" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-800">{orderedQuestions.indexOf(q) + 1}. {q.prompt || 'Untitled question'}</span><span className="text-xs text-slate-500">{typeLabels[q.type] || q.type} · {q.bloomsTaxonomy || 'Apply'} · {q.marks} marks</span></span>
                 </button></div>)}
                 <div data-drop-area="true" className={`relative mt-2 rounded-lg border-2 border-dashed px-2 py-4 text-center text-xs transition-colors ${dropSectionId === section.id && !dropTarget?.beforeId ? 'border-blue-500 bg-blue-100 text-blue-800' : 'border-blue-200 bg-white/60 text-blue-500'}`}>
                   {dropSectionId === section.id && !dropTarget?.beforeId && renderDropIndicator()}
@@ -854,7 +860,7 @@ export const CreateClassAssessmentView: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 text-xs"><label htmlFor="question-section" className="font-semibold text-slate-600">Move to section</label><select id="question-section" value={sectionIdFor(q, sections)} onChange={event => moveToSection(q.id, event.target.value)} className="max-w-full rounded-lg border border-slate-300 p-2 bg-white">{sections.map(section => <option key={section.id} value={section.id}>{sectionLabel(section)}</option>)}</select></div>
             {/* Question Card Top Bar */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="w-7 h-7 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center justify-center">
                   {idx + 1}
                 </span>
@@ -886,6 +892,23 @@ export const CreateClassAssessmentView: React.FC = () => {
                     Sequence & Step Ordering
                   </span>
                 )}
+
+                {/* Bloom's Taxonomy Badge & Selector */}
+                <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                  <span className="text-xs font-bold text-slate-600">Bloom:</span>
+                  <select
+                    aria-label="Bloom's Taxonomy level"
+                    value={q.bloomsTaxonomy || 'Apply'}
+                    onChange={(e) =>
+                      handleUpdateQuestion(q.id, { bloomsTaxonomy: e.target.value as BloomsTaxonomyLevel })
+                    }
+                    className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    {bloomsTaxonomyLevels.map((lvl) => (
+                      <option key={lvl} value={lvl}>{lvl}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Marks and Re-order / Delete actions */}
@@ -1421,7 +1444,6 @@ export const CreateClassAssessmentView: React.FC = () => {
               </div>
             )}
 
-            {q.type === 'short_answer' && <label className="block text-sm font-semibold">Model answer<textarea aria-label="Model answer" value={q.sampleAnswer || ''} onChange={e => handleUpdateQuestion(q.id, { sampleAnswer: e.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 p-3" /></label>}
             {/* Explanation / Model Note */}
             <div className="pt-2">
               <label className="block text-[11px] font-bold text-slate-600 mb-1">
@@ -1486,7 +1508,7 @@ export const CreateClassAssessmentView: React.FC = () => {
           <div className="border-t border-slate-100 pt-5">
             <div className="flex justify-between items-center mb-3"><h4 className="font-bold text-sm">Question summary</h4><button onClick={() => goToStep(1)} className="text-sm font-semibold text-blue-600">Edit questions</button></div>
             {orderedQuestions.map((q, index) => <button key={q.id} onClick={() => {selectQuestion(q.id); goToStep(1);}} className="w-full flex items-center gap-3 py-3 border-b border-slate-100 text-left hover:bg-slate-50">
-              <span className="text-xs text-slate-400">{index + 1}.</span><span className="flex-1 min-w-0"><span className="block truncate text-sm font-medium">{q.prompt || 'Untitled question'}</span><span className="text-xs text-slate-500">{sectionLabel(sections.find(section => section.id === sectionIdFor(q, sections))!)} · {typeLabels[q.type]}</span></span><span className="text-xs whitespace-nowrap text-slate-500">{q.marks} marks</span>
+              <span className="text-xs text-slate-400">{index + 1}.</span><span className="flex-1 min-w-0"><span className="block truncate text-sm font-medium">{q.prompt || 'Untitled question'}</span><span className="text-xs text-slate-500">{sectionLabel(sections.find(section => section.id === sectionIdFor(q, sections))!)} · {typeLabels[q.type] || q.type} · Bloom: {q.bloomsTaxonomy || 'Apply'}</span></span><span className="text-xs whitespace-nowrap text-slate-500">{q.marks} marks</span>
             </button>)}
           </div>
         </div>
@@ -1580,8 +1602,13 @@ export const CreateClassAssessmentView: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="font-black text-slate-900 text-sm">Question {idx + 1}</span>
                       <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
-                        {q.type}
+                        {typeLabels[q.type] || q.type}
                       </span>
+                      {q.bloomsTaxonomy && (
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${bloomsTaxonomyColors[q.bloomsTaxonomy]?.bg || 'bg-purple-100'} ${bloomsTaxonomyColors[q.bloomsTaxonomy]?.text || 'text-purple-800'} ${bloomsTaxonomyColors[q.bloomsTaxonomy]?.border || 'border-purple-200'}`}>
+                          {q.bloomsTaxonomy}
+                        </span>
+                      )}
                     </div>
                     <span className="font-bold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
                       {q.marks} Marks
@@ -1590,7 +1617,6 @@ export const CreateClassAssessmentView: React.FC = () => {
 
                   <p className="text-xs font-semibold text-slate-900">{q.prompt}</p>
 
-                  {q.type === 'short_answer' && <textarea aria-label="Your answer" placeholder="Type your answer…" className="w-full rounded-xl border border-slate-300 p-3" />}
                   {/* MCQ Preview */}
                   {q.type === 'mcq' && q.options && (
                     <div className="space-y-2">

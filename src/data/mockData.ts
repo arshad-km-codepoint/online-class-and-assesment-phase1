@@ -2355,6 +2355,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'mcq',
         prompt: '1. What is the derivative of f(x) = sin(3x) with respect to x applying the Chain Rule?',
         marks: 3,
+        bloomsTaxonomy: 'Apply',
         options: [
           'A) 3 · cos(3x)',
           'B) cos(3x)',
@@ -2369,6 +2370,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'mmcq',
         prompt: '2. Select ALL functions whose derivative with respect to x is strictly positive for all x > 0 (Multiple Correct):',
         marks: 4,
+        bloomsTaxonomy: 'Analyze',
         options: [
           'A) f(x) = e^(2x)',
           'B) g(x) = ln(x)',
@@ -2384,6 +2386,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'match_following',
         prompt: '3. Match each mathematical function in Column A with its exact first derivative in Column B:',
         marks: 4,
+        bloomsTaxonomy: 'Understand',
         explanation: 'Standard derivative rules: Exponential d/dx[e^(2x)]=2e^(2x), Logarithmic d/dx[ln(x)]=1/x, Trigonometric d/dx[tan(x)]=sec²(x), Power d/dx[x³-4x]=3x²-4.',
         matchingPairs: [
           { id: 'p1', leftText: 'd/dx [ e^(2x) ]', rightText: '2 · e^(2x)' },
@@ -2397,6 +2400,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'fill_in_blanks',
         prompt: '4. Complete the fundamental calculus identities by dragging the appropriate terms into each blank slot:',
         marks: 3,
+        bloomsTaxonomy: 'Remember',
         explanation: "1) By Chain Rule: d/dx[f(g(x))] = f'(g(x)) · g'(x). 2) d/dx[cos(2x)] = -2·sin(2x). 3) By Second Derivative Test, f''(c) < 0 implies a local maximum.",
         blankSlots: [
           {
@@ -2428,6 +2432,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'step_ordering',
         prompt: '5. Arrange the step-by-step mathematical proof for solving the quadratic equation 2x² + 5x - 3 = 0 in correct logical sequence (Beware of distractor steps):',
         marks: 4,
+        bloomsTaxonomy: 'Evaluate',
         orderedSteps: [
           'Step 1: Write equation in standard form: 2x² + 5x - 3 = 0',
           'Step 2: Split middle term using product-sum rule: 2x² + 6x - x - 3 = 0',
@@ -2564,6 +2569,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'mcq',
         prompt: '1. What is the SI unit of magnetic flux (Φ)?',
         marks: 2,
+        bloomsTaxonomy: 'Remember',
         options: [
           'A) Tesla (T)',
           'B) Weber (Wb)',
@@ -2578,6 +2584,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'mmcq',
         prompt: '2. According to Faraday and Lenz, which factors directly determine the magnitude of induced EMF in a coil? (Select all that apply)',
         marks: 3,
+        bloomsTaxonomy: 'Analyze',
         options: [
           'A) Number of turns in the coil (N)',
           'B) Rate of change of magnetic flux (dΦ/dt)',
@@ -2593,6 +2600,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'fill_in_blanks',
         prompt: '3. Complete Lenz’s Law statement by placing the correct terms in the blanks:',
         marks: 2,
+        bloomsTaxonomy: 'Understand',
         explanation: 'Lenz’s law represents the conservation of energy.',
         blankSlots: [
           {
@@ -2617,6 +2625,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'match_following',
         prompt: '4. Match the electromagnetic phenomenon with its corresponding physical law:',
         marks: 3,
+        bloomsTaxonomy: 'Understand',
         explanation: 'Faraday (induced EMF magnitude), Lenz (direction & energy conservation), Ampere (magnetic field of current), Gauss (magnetic monopoles absent).',
         matchingPairs: [
           { id: 'mp1', leftText: 'Induced EMF Magnitude', rightText: 'Faraday’s Law' },
@@ -2647,6 +2656,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'mcq',
         prompt: '1. Which reagent is best suited to convert ethanol to ethanal (aldehyde) without over-oxidation to carboxylic acid?',
         marks: 3,
+        bloomsTaxonomy: 'Remember',
         options: [
           'A) Pyridinium Chlorochromate (PCC)',
           'B) Alkaline KMnO₄',
@@ -2661,6 +2671,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'mmcq',
         prompt: '2. Which of the following compounds will give a positive Iodoform test (yellow precipitate of CHI₃)? (Multiple Correct)',
         marks: 4,
+        bloomsTaxonomy: 'Analyze',
         options: [
           'A) Ethanol (CH₃CH₂OH)',
           'B) Propan-2-ol (CH₃CH(OH)CH₃)',
@@ -2676,6 +2687,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'match_following',
         prompt: '3. Match the organic functional group with its characteristic test or reaction:',
         marks: 4,
+        bloomsTaxonomy: 'Apply',
         matchingPairs: [
           { id: 'cp1', leftText: 'Phenol', rightText: 'Neutral FeCl₃ violet color' },
           { id: 'cp2', leftText: 'Aldehyde', rightText: 'Tollens’ Silver Mirror test' },
@@ -2688,6 +2700,7 @@ export const mockLiveAssessments: LiveInClassAssessment[] = [
         type: 'fill_in_blanks',
         prompt: '4. Fill in the blanks regarding electrophilic aromatic substitution in Phenol:',
         marks: 4,
+        bloomsTaxonomy: 'Create',
         blankSlots: [
           {
             id: 'b-ch-1',

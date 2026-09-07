@@ -457,12 +457,21 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem('online-learning-question-pool-v1');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.every(q => q && typeof q.id === 'string' && typeof q.prompt === 'string' && typeof q.subject === 'string' && typeof q.topic === 'string' && ['mcq', 'mmcq', 'short_answer', 'fill_in_blanks', 'match_following', 'step_ordering'].includes(q.type))) return parsed;
+        if (Array.isArray(parsed)) {
+          const valid = parsed
+            .filter(q => q && typeof q.id === 'string' && typeof q.prompt === 'string' && typeof q.subject === 'string' && typeof q.topic === 'string' && q.type !== 'short_answer' && ['mcq', 'mmcq', 'fill_in_blanks', 'match_following', 'step_ordering'].includes(q.type))
+            .map(q => ({
+              ...q,
+              bloomsTaxonomy: q.bloomsTaxonomy || 'Apply',
+            }));
+          if (valid.length > 0) return valid;
+        }
       }
     } catch { /* Use starter questions when storage is unavailable or invalid. */ }
     return initialLiveAssessments.flatMap(assessment => assessment.questions.map(q => ({
       ...structuredClone(q), id: `pool-${assessment.id}-${q.id}`, sectionId: undefined,
       subject: assessment.subject, topic: assessment.topic, difficulty: 'Medium' as const,
+      bloomsTaxonomy: q.bloomsTaxonomy || 'Apply' as const,
     })));
   });
   const persistQuestionPool = (next: PoolQuestion[]) => {
