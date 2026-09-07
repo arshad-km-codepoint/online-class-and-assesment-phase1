@@ -1,0 +1,843 @@
+Product Requirements Document (PRD)
+Online Examination Management
+Document Version: 1.0
+Module: Online Examination
+Primary Users: Teachers, Students, Academic Administrators
+Platform: Web / Mobile
+Status: Proposed
+1. Purpose
+The Online Examination module will provide a complete digital examination workflow that enables teachers to create, configure, conduct, and evaluate online examinations, while allowing students to securely attend examinations and submit answers electronically.
+The system should support different examination types, recipient selection, academic mapping, multiple question types, question-bank-based examinations, PDF-based question papers, configurable marks, different answer submission formats, and automated/manual evaluation.
+The objective is to minimize manual examination activities and provide a flexible, scalable, and user-friendly online assessment platform.
+2. Scope
+The Online Examination module will cover the following major functionalities:
+Online Exam Creation – Teacher
+Exam Configuration
+Recipient Selection
+Academic Mapping
+Question Configuration
+Question Bank Selection
+PDF Question Paper Upload
+Question-Type and Mark Distribution
+Exam Scheduling
+Student Exam Listing
+Student Exam Attendance
+Online Answer Submission
+Attachment/Text-Based Answers
+Exam Timer and Duration Management
+Auto-Save and Submission
+Teacher Evaluation
+Marks Allocation
+Result Generation
+Exam Reports
+Exam History and Audit Trail
+3. User Roles
+3.1 Teacher
+Teachers should be able to:
+Create examinations.
+Configure exam settings.
+Select classes/divisions/students.
+Select subjects and chapters.
+Select question types.
+Create questions or select questions from the existing question pool.
+Upload PDF-based question papers.
+Configure marks and pass marks.
+Schedule examinations.
+Monitor student participation.
+Evaluate answers.
+Publish results.
+View examination reports.
+3.2 Student
+Students should be able to:
+View available examinations.
+View examination details.
+Start an examination.
+View questions.
+Enter answers.
+Upload answer attachments where applicable.
+Save answers.
+Navigate between questions.
+Submit the examination.
+View examination status.
+View results when published.
+3.3 Academic Administrator
+Administrators may have access to:
+View all examinations.
+Monitor examinations.
+Manage examination configurations.
+View student participation.
+View results and reports.
+Override/correct marks where permitted.
+Manage examination settings.
+4. Exam Creation – Teacher End
+The teacher should have an "Create Online Exam" option.
+The exam creation process should be divided into logical steps to make the configuration easier.
+Step 1 – Exam Type
+The teacher should select the type of examination.
+Available options:
+Spot Test
+Scheduled Test
+4.1 Spot Test
+A Spot Test is intended for an examination that students can attend immediately or within a short period.
+Example:
+Teacher creates a Mathematics test and makes it immediately available to the selected students.
+The system should allow the teacher to configure whether students can start immediately after publishing.
+4.2 Scheduled Test
+A Scheduled Test should be conducted within a predefined date and time.
+The teacher should specify:
+Start Date
+Start Time
+End Date, if applicable
+End Time
+Exam Duration
+Students should only be permitted to access the examination according to the configured schedule.
+5. Recipient Type
+The teacher should select who will receive the examination.
+Options
+Class-wise
+Student-wise
+5.1 Class-wise
+When Class-wise is selected, the teacher should be able to select:
+Academic Year
+Class
+Division
+Example:
+Grade 8 → Division A
+The examination will automatically be assigned to all eligible students in the selected division.
+5.2 Student-wise
+When Student-wise is selected, the teacher should be able to search and select individual students.
+The system should provide:
+Student Name
+Admission Number
+Class
+Division
+Student Selection Checkbox
+Multiple students should be selectable.
+6. Academic Configuration
+The examination should be linked to the relevant academic structure.
+Required fields
+Academic Year
+Class
+Division
+Subject
+Chapter
+Subject Selection
+The teacher should select the subject associated with the examination.
+Example:
+Mathematics
+Chapter Selection
+After selecting the subject, the system should display the available chapters.
+The teacher should be able to:
+Select one chapter.
+Select multiple chapters.
+Select all chapters.
+Example:
+Subject: Mathematics
+
+Chapters:
+Algebra
+Geometry
+Linear Equations
+7. Exam Details
+The teacher should enter the basic examination information.
+Field	Description
+Exam Name	Name of the examination
+Exam Code	Unique examination reference
+Exam Type	Spot Test / Scheduled Test
+Academic Year	Academic year
+Class	Target class
+Division	Target division
+Subject	Examination subject
+Chapter	Relevant chapter(s)
+Start Date	Examination start date
+Start Time	Examination start time
+End Date	Examination end date, if applicable
+End Time	Examination end time
+Exam Duration	Duration in minutes
+Total Marks	Maximum marks
+Minimum Pass Mark	Minimum required marks
+Instructions	Instructions to students
+Exam Code
+The system should either:
+Automatically generate the Exam Code, or
+Allow the teacher to manually enter it.
+The Exam Code should be unique.
+Example:
+MAT-G8-2026-001
+8. Question Source
+The teacher should select how questions will be added to the examination.
+Options
+Option 1 – Existing Question Pool
+Option 2 – Upload Question Paper PDF
+9. Question Source – Existing Question Pool
+If the teacher selects Existing Question Pool, the system should display questions available in the question bank based on the selected:
+Subject
+Chapter
+Class
+Question Type
+The teacher should be able to select questions from the existing pool.
+10. Supported Question Types
+The system should support the following question types:
+10.1 MCQ
+Multiple Choice Question.
+Example:
+What is 5 × 5?
+A. 10
+B. 15
+C. 20
+D. 25
+The student selects one answer.
+10.2 One Word
+The student provides a short one-word answer.
+Example:
+Who discovered gravity?
+Answer:
+Newton
+10.3 Short Answer
+The student provides a brief descriptive answer.
+Example:
+Explain the water cycle.
+10.4 Long Answer
+The student provides a detailed response.
+10.5 Essay
+The student provides an extended descriptive answer.
+11. Question Distribution and Marks Configuration
+The teacher should be able to configure how many questions should be included from each question type.
+Example:
+Question Type	No. of Questions	Marks/Question	Total
+MCQ	10	1	10
+One Word	5	1	5
+Short Answer	5	2	10
+Long Answer	2	5	10
+Essay	1	15	15
+Total	23	 	50
+The system should automatically calculate:
+Number of questions
+Marks per question
+Total marks
+Maximum examination marks
+The system should validate that:
+Question Marks Total = Exam Total Marks
+If the values do not match, the system should display an appropriate validation message.
+12. Question Selection
+For each question type, the teacher should be able to select the required number of questions.
+Example:
+MCQ → Required: 10 questions
+The system should display the available MCQ questions from the selected subject/chapter.
+The teacher can select the required questions.
+The system should display:
+Question
+Question Type
+Chapter
+Difficulty Level, if available
+Marks
+Selection status
+The system should prevent the teacher from selecting fewer questions than required.
+13. Random Question Selection
+As an optional feature, the system may support automatic/random question selection.
+Example:
+MCQ: Select 10 randomly from 50 available questions.
+This will allow teachers to create different question sets and reduce question duplication.
+Possible configuration:
+Manual Selection
+Random Selection
+14. PDF Question Paper Upload
+If the teacher selects Upload PDF, the system should allow the teacher to upload a question paper in PDF format.
+PDF configuration
+The teacher should provide:
+Question Paper PDF
+Total Marks
+Question Count
+Exam Duration
+Answer Submission Type
+The uploaded PDF will be displayed to students during the examination.
+Important consideration
+The system should maintain the uploaded PDF as the official question paper associated with the examination.
+The PDF should not be editable by students.
+15. Answer Type Configuration
+The system should support different answer submission methods.
+Answer Types
+Text Answer
+Attachment Answer
+15.1 Text Answer
+Students can enter their answers directly into the examination interface.
+This should be primarily applicable to:
+One Word
+Short Answer
+Long Answer
+Essay
+The system should provide an appropriate text editor/text area.
+15.2 Attachment Answer
+Students can upload their answers as files.
+Possible use cases:
+Handwritten answer scanned as PDF
+Photograph of handwritten answer
+Document file
+Supporting calculation/work
+The system should allow configurable file formats and maximum file size.
+Example:
+PDF
+JPG
+JPEG
+PNG
+The administrator should be able to configure the maximum attachment size.
+16. Student Examination Dashboard
+Students should have an Online Exams section.
+The dashboard should display:
+Upcoming Exams
+Exam Name
+Subject
+Date
+Start Time
+Duration
+Total Marks
+Status
+Available Exams
+Examinations currently available to attend.
+Completed Exams
+Previously attended examinations.
+Results
+Examinations for which results have been published.
+17. Student Exam Details
+Before starting the exam, students should see an examination information screen.
+Example:
+Mathematics – Chapter 3 Test
+Exam Code: MAT-2026-003
+Subject: Mathematics
+Chapter: Algebra
+Date: 15 August 2026
+Start Time: 10:00 AM
+Duration: 60 Minutes
+Total Marks: 50
+Pass Mark: 20
+The system should also display examination instructions.
+The student should confirm the instructions before starting.
+18. Start Examination
+When the student clicks Start Exam, the system should:
+Validate eligibility.
+Validate exam availability.
+Record the start time.
+Start the examination timer.
+Load the questions/question paper.
+Create an examination attempt.
+Begin automatic answer saving.
+The system should record:
+Student ID
+Exam ID
+Start Time
+IP/device information, where permitted
+Attempt number
+Exam status
+19. Examination Interface
+The student examination interface should include:
+Header
+Exam Name
+Subject
+Student Name
+Exam Code
+Remaining Time
+Question Area
+Question Number
+Question
+Question Type
+Marks
+Answer field
+Navigation
+Students should be able to:
+Next Question
+Previous Question
+Save Answer
+Mark for Review
+Navigate directly to a question
+20. Question Status
+The system should visually identify question status.
+Possible statuses:
+Not Visited
+Visited
+Answered
+Not Answered
+Marked for Review
+Answered & Marked for Review
+Example:
+Question	Status
+1	Answered
+2	Not Answered
+3	Marked for Review
+4	Answered
+21. Auto Save
+Student answers should be automatically saved periodically.
+For example:
+Save every 10–30 seconds.
+Answers should also be saved when:
+Student moves to another question.
+Student clicks Save.
+Student navigates between pages.
+This should prevent data loss due to:
+Browser refresh
+Network interruption
+Accidental navigation
+Session issues
+22. Exam Timer
+The system should display a countdown timer.
+Example:
+Time Remaining: 42:15
+When the timer reaches zero:
+The system should stop accepting answers.
+The system should automatically submit the examination.
+The attempt should be marked as Auto Submitted.
+The submission time should be recorded.
+23. Student Answer Submission
+Before final submission, the system should display a confirmation screen.
+Example:
+You have answered 18 of 20 questions.
+
+2 questions are unanswered.
+
+Are you sure you want to submit?
+Options:
+Cancel
+Submit Exam
+The system should highlight unanswered questions.
+24. Final Submission
+Once the student confirms submission:
+Exam status becomes Submitted.
+Submission date/time is recorded.
+Student can no longer modify answers.
+Attempt data is locked.
+Teacher evaluation becomes available.
+25. Evaluation
+Evaluation should depend on the question type.
+Automatic Evaluation
+MCQ and potentially One Word questions can be automatically evaluated if an answer key is available.
+Manual Evaluation
+The teacher should manually evaluate:
+Short Answer
+Long Answer
+Essay
+Attachment-based answers
+26. Teacher Evaluation Dashboard
+Teachers should have an Evaluation / Pending Evaluation section.
+The system should display:
+Exam Name
+Student Name
+Class
+Division
+Submission Date
+Evaluation Status
+Obtained Marks
+Maximum Marks
+Statuses:
+Not Started
+In Progress
+Completed
+Published
+27. Answer Evaluation Screen
+The teacher should be able to view:
+Question
+Explain the process of photosynthesis.
+Student Answer
+Student's submitted answer
+Maximum Marks
+5
+Marks Awarded
+[ 4 ]
+Teacher Remarks
+Good explanation. Minor points missing.
+The teacher should then move to the next question.
+28. Attachment Evaluation
+For attachment-based answers, the teacher should be able to:
+View attachment.
+Download attachment, where permitted.
+Review the answer.
+Enter marks.
+Add remarks.
+The attachment should remain associated with the student's specific question and attempt.
+29. Result Calculation
+The system should automatically calculate:
+Total Marks
+Obtained Marks
+Percentage
+Pass/Fail
+Grade, if grading rules are configured
+Example:
+Total Marks: 50
+Obtained Marks: 42
+Percentage: 84%
+Result: Pass
+The system should determine Pass/Fail based on the configured minimum pass mark.
+30. Result Publication
+The teacher should have the option to publish the result.
+Before publication:
+Result Status: Draft
+After publication:
+Result Status: Published
+Students should only be able to view their marks after the result is published.
+31. Examination Status
+The examination should have a defined lifecycle.
+Exam Creation
+Draft
+↓
+Exam Published
+Published
+↓
+Exam Available
+Available
+↓
+Exam Started
+In Progress
+↓
+Student Submitted
+Submitted
+↓
+Evaluation
+Under Evaluation
+↓
+Result Published
+Result Published
+32. Exam Reports
+The system should provide reports such as:
+Exam-wise Report
+Exam Name
+Subject
+Class
+Division
+Total Students
+Attended
+Absent
+Passed
+Failed
+Average Marks
+Highest Marks
+Lowest Marks
+Student-wise Report
+Student Name
+Exam
+Total Marks
+Obtained Marks
+Percentage
+Result
+Question-wise Analysis
+Question
+Question Type
+Maximum Marks
+Average Marks
+Number of Correct Answers
+Number of Incorrect Answers
+Number of Unanswered Questions
+33. Exam Security and Controls
+The system should provide basic examination security controls.
+Recommended controls
+Student-specific examination assignment.
+Exam start/end validation.
+Timer enforcement.
+Automatic submission.
+Prevent multiple active attempts.
+Attempt logging.
+Answer auto-save.
+Submission timestamp.
+Question paper access control.
+Role-based access.
+Audit trail.
+Optional advanced features may include:
+Browser/tab switching detection.
+Full-screen mode.
+Randomized questions.
+Randomized MCQ options.
+Device restriction.
+Webcam/proctoring.
+AI-based proctoring.
+These can be considered as future enhancements.
+34. Notifications
+The system should optionally notify students about upcoming examinations.
+Notifications can be sent through:
+In-app notification
+Push notification
+Email
+SMS
+Example:
+Upcoming Online Exam: Mathematics Test scheduled for 15 August 2026 at 10:00 AM.
+35. Validation Rules
+The system should validate:
+Exam Name is mandatory.
+Exam Code must be unique.
+Subject is mandatory.
+Recipient selection is mandatory.
+Class and division are mandatory for class-wise exams.
+At least one student must be selected for student-wise exams.
+Start date/time cannot conflict with configured exam rules.
+Exam duration must be greater than zero.
+Total marks must be greater than zero.
+Pass mark cannot exceed total marks.
+Required question count must be available in the question pool.
+Total configured question marks must equal total exam marks.
+PDF must be within the allowed file size.
+Only supported file formats can be uploaded.
+Students cannot access an exam outside its availability window.
+Submitted exams cannot be modified by students.
+36. Suggested Teacher Workflow
+Teacher Login
+      ↓
+Online Examination
+      ↓
+Create Exam
+      ↓
+Select Exam Type
+(Spot / Scheduled)
+      ↓
+Select Recipient
+(Class-wise / Student-wise)
+      ↓
+Select Class & Division
+      ↓
+Select Subject
+      ↓
+Select Chapter(s)
+      ↓
+Enter Exam Details
+      ↓
+Configure Marks
+      ↓
+Select Question Source
+      ↓
+ ┌──────────────────────────┐
+ │ Existing Question Pool   │
+ │ OR                       │
+ │ Upload PDF               │
+ └──────────────────────────┘
+      ↓
+Configure Question Types
+      ↓
+Select Questions
+      ↓
+Review Examination
+      ↓
+Publish
+      ↓
+Students Attend Exam
+      ↓
+Evaluate Answers
+      ↓
+Publish Results
+37. Suggested Student Workflow
+Student Login
+      ↓
+Online Exams
+      ↓
+View Available Exams
+      ↓
+Select Exam
+      ↓
+View Exam Instructions
+      ↓
+Start Exam
+      ↓
+Timer Starts
+      ↓
+View Questions
+      ↓
+Enter Text / Upload Attachment
+      ↓
+Answers Auto-Saved
+      ↓
+Review Answers
+      ↓
+Submit Exam
+      ↓
+Evaluation
+      ↓
+Result Published
+      ↓
+View Result
+38. Database / Core Entities
+The implementation should consider the following major entities:
+Exam
+Exam ID
+Exam Code
+Exam Name
+Exam Type
+Academic Year
+Subject ID
+Start Date
+Start Time
+End Date
+End Time
+Duration
+Total Marks
+Pass Marks
+Status
+Created By
+Created Date
+Exam Recipient
+Recipient ID
+Exam ID
+Recipient Type
+Class ID
+Division ID
+Student ID
+Exam Chapter
+Exam ID
+Chapter ID
+Exam Question
+Exam Question ID
+Exam ID
+Question ID
+Question Type
+Marks
+Sequence
+Source
+Student Exam Attempt
+Attempt ID
+Exam ID
+Student ID
+Start Time
+End Time
+Submission Time
+Status
+Attempt Number
+Student Answer
+Answer ID
+Attempt ID
+Question ID
+Answer Type
+Text Answer
+Attachment Path
+Marks Awarded
+Teacher Remarks
+Evaluation Status
+Exam Result
+Result ID
+Exam ID
+Student ID
+Total Marks
+Obtained Marks
+Percentage
+Result Status
+Published Date
+39. Non-Functional Requirements
+Performance
+The system should support multiple students attending an examination simultaneously without significant performance degradation.
+Availability
+The examination service should have high availability during scheduled examination periods.
+Security
+Student examination data and question papers must be protected through proper authentication and authorization.
+Data Integrity
+Student answers must not be lost during an examination.
+Scalability
+The architecture should support examinations involving:
+One student
+One class
+Multiple divisions
+Multiple classes
+Large student populations
+40. Future Enhancements
+The following features can be considered in future phases:
+AI-Based Question Generation
+Generate questions automatically based on:
+Subject
+Chapter
+Difficulty
+Learning objectives
+Marks
+AI-Based Evaluation
+AI-assisted evaluation of:
+Short answers
+Long answers
+Essays
+Question Randomization
+Generate different question sets for different students.
+AI Proctoring
+Monitor:
+Face presence
+Multiple persons
+Suspicious activity
+Tab switching
+Screen activity
+Advanced Analytics
+Provide:
+Learning-gap analysis
+Topic-wise performance
+Question difficulty analysis
+Student performance trends
+Class performance comparison
+41. Acceptance Criteria
+The Online Examination module will be considered functionally complete when:
+Teachers can create Spot and Scheduled Tests.
+Teachers can assign exams class-wise or student-wise.
+Teachers can select subjects and chapters.
+Teachers can configure exam duration and marks.
+Teachers can select questions from an existing question pool.
+Teachers can upload PDF question papers.
+MCQ, One Word, Short Answer, Long Answer, and Essay questions are supported.
+Teachers can configure the number of questions from each question type.
+Total marks are automatically calculated and validated.
+Students can view eligible examinations.
+Students can attend examinations within the configured time.
+Students can submit text answers.
+Students can upload attachments where permitted.
+Answers are automatically saved.
+Examination automatically submits when the timer expires.
+Teachers can evaluate submitted answers.
+Marks can be assigned question-wise.
+Results are automatically calculated.
+Teachers can publish results.
+Students can view published results.
+Examination and student performance reports are available.
+All important examination activities are logged.
+42. Recommended Phase-wise Development
+Phase 1 – Core Examination
+Exam creation
+Spot/Scheduled Test
+Class-wise/Student-wise assignment
+Subject/Chapter selection
+Exam details
+Existing question pool
+MCQ/One Word/Short/Long/Essay
+Marks configuration
+Student examination
+Timer
+Auto-save
+Submission
+Phase 2 – Evaluation & Results
+Teacher evaluation
+Attachment answers
+Manual marks
+Automatic MCQ evaluation
+Result calculation
+Result publication
+Basic reports
+Phase 3 – Advanced Examination
+PDF question paper
+Random question selection
+Question randomization
+Advanced reports
+Performance analytics
+Notifications
+Exam monitoring
+Phase 4 – AI & Proctoring
+AI question generation
+AI-assisted evaluation
+AI performance analysis
+Online proctoring
+Suspicious activity detection
+Personalized assessment analytics
+43. Overall Module Architecture
+The proposed Online Examination module can therefore be structured into six major components:
+1. Exam Management
+
+Teacher creates and configures examinations.
+2. Question Management
+
+Question pool, question types, PDF question papers and question distribution.
+3. Exam Delivery
+
+Student exam interface, timer, navigation, auto-save and submission.
+4. Answer Management
+
+Text answers, attachment answers and student attempt management.
+5. Evaluation & Results
+
+Automatic/manual evaluation, marks, grades, pass/fail and result publication.
+6. Reports & Analytics
+
+Exam reports, student performance, question analysis and academic insights
+ 
