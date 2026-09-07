@@ -20,6 +20,7 @@ import { StudentOnlineClassesView } from './views/StudentOnlineClassesView';
 import { ShareAssessmentModal } from './components/modals/ShareAssessmentModal';
 import { StudentIdentityVerificationModal } from './components/modals/StudentIdentityVerificationModal';
 import { LiveAssessmentStudentModal } from './components/modals/LiveAssessmentStudentModal';
+import { LiveAssessmentTeacherReviewModal } from './components/modals/LiveAssessmentTeacherReviewModal';
 
 const MainContent: React.FC = () => {
   const { activeTab } = useExam();
@@ -59,10 +60,11 @@ const MainContent: React.FC = () => {
         </div>
       )}
 
-      {/* Global Modals for QR/Link Assessment Sharing & Student Identity Verification */}
+      {/* Global Modals for QR/Link Assessment Sharing, Review Studio & Student Identity Verification */}
       <ShareAssessmentModal />
       <StudentIdentityVerificationModal />
       <LiveAssessmentStudentModal />
+      <LiveAssessmentTeacherReviewModal />
 
       {/* Floating Notifications */}
       <ToastContainer />

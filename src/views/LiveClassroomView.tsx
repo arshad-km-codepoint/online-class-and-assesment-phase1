@@ -980,7 +980,6 @@ export const LiveClassroomView: React.FC = () => {
       </div>
 
       {/* In-Class Modals */}
-      <LiveAssessmentTeacherReviewModal />
       <LiveAssessmentCreatorModal />
     </div>
   );

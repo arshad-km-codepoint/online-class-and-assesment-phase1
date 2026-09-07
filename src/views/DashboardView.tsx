@@ -46,6 +46,7 @@ export const DashboardView: React.FC = () => {
     parentAccount,
     setSelectedChildId,
     addToast,
+    openAssessmentSubmissionsReview,
   } = useExam();
 
   const isTeacher = portalMode === 'teacher';
@@ -513,13 +514,26 @@ export const DashboardView: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('online-class-assessments')}
-                      className="self-end sm:self-center px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold transition cursor-pointer shrink-0"
-                    >
-                      View Details
-                    </button>
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      {submissionCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => openAssessmentSubmissionsReview(ass)}
+                          className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                          title="View student submissions in Review Studio"
+                        >
+                          <Award className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Submissions ({submissionCount})</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('online-class-assessments')}
+                        className="px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--border-color)] text-[var(--text-primary)] text-xs font-bold transition cursor-pointer"
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 );
               })}

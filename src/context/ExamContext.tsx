@@ -282,6 +282,10 @@ interface ExamContextType {
   setShowStudentAssessmentModal: (show: boolean) => void;
   showTeacherAssessmentReviewModal: boolean;
   setShowTeacherAssessmentReviewModal: (show: boolean) => void;
+  reviewingAssessment: LiveInClassAssessment | null;
+  setReviewingAssessment: (ass: LiveInClassAssessment | null) => void;
+  openAssessmentSubmissionsReview: (assessment: LiveInClassAssessment) => void;
+  closeAssessmentSubmissionsReview: () => void;
   showAssessmentCreatorModal: boolean;
   setShowAssessmentCreatorModal: (show: boolean) => void;
 
@@ -610,7 +614,18 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [editingLiveAssessment, setEditingLiveAssessment] = useState<LiveInClassAssessment | null>(null);
   const [showStudentAssessmentModal, setShowStudentAssessmentModal] = useState<boolean>(false);
   const [showTeacherAssessmentReviewModal, setShowTeacherAssessmentReviewModal] = useState<boolean>(false);
+  const [reviewingAssessment, setReviewingAssessment] = useState<LiveInClassAssessment | null>(null);
   const [showAssessmentCreatorModal, setShowAssessmentCreatorModal] = useState<boolean>(false);
+
+  const openAssessmentSubmissionsReview = (assessment: LiveInClassAssessment) => {
+    setReviewingAssessment(assessment);
+    setShowTeacherAssessmentReviewModal(true);
+  };
+
+  const closeAssessmentSubmissionsReview = () => {
+    setShowTeacherAssessmentReviewModal(false);
+    setReviewingAssessment(null);
+  };
 
   // Assessment Link & QR Code Sharing State
   const [sharingAssessment, setSharingAssessment] = useState<LiveInClassAssessment | null>(null);
@@ -786,6 +801,15 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { ...prev, submissions: updatedSubs };
       });
     }
+    if (reviewingAssessment && reviewingAssessment.id === assessmentId) {
+      setReviewingAssessment((prev) => {
+        if (!prev) return null;
+        const updatedSubs = prev.submissions.map((s) =>
+          s.id === submissionId ? { ...s, ...updates } : s
+        );
+        return { ...prev, submissions: updatedSubs };
+      });
+    }
     addToast('Evaluation Updated', 'Marks and feedback saved for student.', 'info');
   };
 
@@ -796,6 +820,9 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (activeLiveAssessment && activeLiveAssessment.id === assessmentId) {
       setActiveLiveAssessment((prev) => (prev ? { ...prev, status: 'closed' } : null));
     }
+    if (reviewingAssessment && reviewingAssessment.id === assessmentId) {
+      setReviewingAssessment((prev) => (prev ? { ...prev, status: 'closed' } : null));
+    }
     addToast('Assessment Closed', 'Live assessment submissions are now locked.', 'info');
   };
 
@@ -805,6 +832,9 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLiveAssessments((prev) =>
       prev.map((a) => (a.id === assessmentId ? { ...a, status: 'published' } : a))
     );
+    if (reviewingAssessment && reviewingAssessment.id === assessmentId) {
+      setReviewingAssessment((prev) => (prev ? { ...prev, status: 'published' } : null));
+    }
     addToast(
       'Scoreboard Published',
       `Shared live assessment solutions & leaderboard with classroom!`,
@@ -1822,6 +1852,10 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setShowStudentAssessmentModal,
         showTeacherAssessmentReviewModal,
         setShowTeacherAssessmentReviewModal,
+        reviewingAssessment,
+        setReviewingAssessment,
+        openAssessmentSubmissionsReview,
+        closeAssessmentSubmissionsReview,
         showAssessmentCreatorModal,
         setShowAssessmentCreatorModal,
 
