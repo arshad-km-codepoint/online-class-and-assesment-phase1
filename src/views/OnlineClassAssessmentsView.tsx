@@ -23,6 +23,8 @@ import {
   ChevronUp,
   FileCheck,
   X,
+  QrCode,
+  Smartphone,
 } from 'lucide-react';
 
 export const OnlineClassAssessmentsView: React.FC = () => {
@@ -36,6 +38,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
     onlineClasses,
     activeLiveClass,
     setActiveLiveClass,
+    openShareAssessment,
   } = useExam();
 
   const [taxonomy, setTaxonomy] = useState<AcademicTaxonomyValues>({
@@ -448,11 +451,19 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                   {/* Actions Column */}
                   <div className="flex flex-col sm:flex-row lg:flex-col items-stretch lg:items-end justify-center gap-2 shrink-0">
                     <button
-                      onClick={() => handleDirectLaunch(ass)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                      onClick={() => openShareAssessment(ass)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4 py-2 text-xs font-extrabold shadow-sm transition-all cursor-pointer"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Share to Live Class</span>
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>QR Code & Copy Link</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDirectLaunch(ass)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                    >
+                      <Send className="w-3 h-3 text-orange-500" />
+                      <span>Dispatch to Live Class</span>
                     </button>
 
                     <div className="flex items-center gap-1.5">
@@ -832,17 +843,31 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                 Close Preview
               </button>
 
-              <button
-                onClick={() => {
-                  const target = previewAssessment;
-                  setPreviewAssessment(null);
-                  handleDirectLaunch(target);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-5 py-2.5 text-xs font-semibold shadow-sm cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>Share this Assessment Now</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const target = previewAssessment;
+                    setPreviewAssessment(null);
+                    if (target) openShareAssessment(target);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4 py-2.5 text-xs font-extrabold shadow-sm cursor-pointer"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>Generate QR Code & Link</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const target = previewAssessment;
+                    setPreviewAssessment(null);
+                    if (target) handleDirectLaunch(target);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 text-xs font-extrabold shadow-sm cursor-pointer"
+                >
+                  <Send className="w-4 h-4 text-amber-400" />
+                  <span>Dispatch to Live Class</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

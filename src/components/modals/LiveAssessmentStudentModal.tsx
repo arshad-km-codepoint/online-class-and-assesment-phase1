@@ -80,6 +80,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
     setShowStudentAssessmentModal,
     submitLiveStudentAssessment,
     selectedChild,
+    verifiedStudent,
     addToast,
   } = useExam();
   const activeLiveAssessment = assessment;
@@ -440,10 +441,11 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
     const submissionObj: LiveAssessmentSubmission = {
       id: subId,
       assessmentId: activeLiveAssessment.id,
-      studentId: selectedChild?.id || 's-1',
-      studentName: selectedChild?.name || 'Aarav Sharma',
-      rollNo: selectedChild?.rollNo || '1001',
+      studentId: verifiedStudent?.id || selectedChild?.id || 's-1',
+      studentName: verifiedStudent?.name || selectedChild?.name || 'Aarav Sharma',
+      rollNo: verifiedStudent?.rollNo || selectedChild?.rollNo || '1001',
       avatar:
+        verifiedStudent?.avatar ||
         selectedChild?.avatar ||
         'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80',
       submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -452,6 +454,18 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
       maxMarks: activeLiveAssessment.totalMarks,
       percentage: Math.round((calculatedScore / activeLiveAssessment.totalMarks) * 100),
       status: 'submitted',
+      verifiedVia: verifiedStudent?.verifiedVia || 'nfc',
+      verificationDetails: {
+        cardUid: verifiedStudent?.cardUid,
+        faceConfidence: verifiedStudent?.confidenceScore,
+        verifiedAt: verifiedStudent?.verifiedAt || new Date().toLocaleTimeString(),
+        authMethodLabel:
+          verifiedStudent?.verifiedVia === 'face'
+            ? 'Face Scan Biometrics'
+            : verifiedStudent?.verifiedVia === 'both'
+            ? 'Dual-Factor (NFC + Face)'
+            : 'RFID/NFC Smart Card',
+      },
     };
 
     submitLiveStudentAssessment(submissionObj);
@@ -537,6 +551,35 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
             </button>
           </div>
         </div>
+
+        {/* Verified Student Identity Banner */}
+        {verifiedStudent && (
+          <div className="bg-emerald-950/90 border-b border-emerald-500/30 px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-200">
+            <div className="flex items-center gap-2.5">
+              <img
+                src={verifiedStudent.avatar}
+                alt={verifiedStudent.name}
+                className="w-6 h-6 rounded-full object-cover border border-emerald-400 shrink-0"
+              />
+              <span className="font-medium text-slate-200">
+                Authenticated Candidate:{' '}
+                <strong className="text-white font-black">{verifiedStudent.name}</strong> • Roll #{verifiedStudent.rollNo} ({verifiedStudent.class})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                {verifiedStudent.verifiedVia === 'nfc'
+                  ? 'NFC Smart Card Verified ✓'
+                  : verifiedStudent.verifiedVia === 'face'
+                  ? 'Biometric Face Scan Verified ✓'
+                  : 'Dual-Factor Authenticated ✓'}
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400/80">
+                {verifiedStudent.verifiedAt}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Modal Body: Assessment Taking Area or Post-Submission Results */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">

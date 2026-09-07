@@ -43,6 +43,7 @@ import {
   LiveAssessmentSubmission,
   LiveAssessmentQuestion,
   PoolQuestion,
+  StudentVerificationProfile,
 } from '../types';
 import {
   mockStudents as initialStudents,
@@ -283,6 +284,24 @@ interface ExamContextType {
   setShowTeacherAssessmentReviewModal: (show: boolean) => void;
   showAssessmentCreatorModal: boolean;
   setShowAssessmentCreatorModal: (show: boolean) => void;
+
+  // Assessment Link & QR Code Sharing
+  sharingAssessment: LiveInClassAssessment | null;
+  setSharingAssessment: (ass: LiveInClassAssessment | null) => void;
+  showShareAssessmentModal: boolean;
+  setShowShareAssessmentModal: (show: boolean) => void;
+  openShareAssessment: (assessment: LiveInClassAssessment) => void;
+  closeShareAssessment: () => void;
+
+  // Student Identity Verification (NFC/RFID & Face Scan)
+  verifyingAssessment: LiveInClassAssessment | null;
+  setVerifyingAssessment: (ass: LiveInClassAssessment | null) => void;
+  showStudentVerificationModal: boolean;
+  setShowStudentVerificationModal: (show: boolean) => void;
+  verifiedStudent: StudentVerificationProfile | null;
+  setVerifiedStudent: (profile: StudentVerificationProfile | null) => void;
+  openStudentVerification: (assessment: LiveInClassAssessment) => void;
+  completeStudentVerification: (profile: StudentVerificationProfile) => void;
 
   // Teacher Actions
   scheduleNewExam: (exam: ScheduledExam) => void;
@@ -592,6 +611,49 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [showStudentAssessmentModal, setShowStudentAssessmentModal] = useState<boolean>(false);
   const [showTeacherAssessmentReviewModal, setShowTeacherAssessmentReviewModal] = useState<boolean>(false);
   const [showAssessmentCreatorModal, setShowAssessmentCreatorModal] = useState<boolean>(false);
+
+  // Assessment Link & QR Code Sharing State
+  const [sharingAssessment, setSharingAssessment] = useState<LiveInClassAssessment | null>(null);
+  const [showShareAssessmentModal, setShowShareAssessmentModal] = useState<boolean>(false);
+
+  const openShareAssessment = (assessment: LiveInClassAssessment) => {
+    setSharingAssessment(assessment);
+    setShowShareAssessmentModal(true);
+  };
+
+  const closeShareAssessment = () => {
+    setShowShareAssessmentModal(false);
+  };
+
+  // Student Identity Verification (NFC/RFID & Face Scan) State
+  const [verifyingAssessment, setVerifyingAssessment] = useState<LiveInClassAssessment | null>(null);
+  const [showStudentVerificationModal, setShowStudentVerificationModal] = useState<boolean>(false);
+  const [verifiedStudent, setVerifiedStudent] = useState<StudentVerificationProfile | null>(null);
+
+  const openStudentVerification = (assessment: LiveInClassAssessment) => {
+    setVerifyingAssessment(assessment);
+    setShowStudentVerificationModal(true);
+  };
+
+  const completeStudentVerification = (profile: StudentVerificationProfile) => {
+    setVerifiedStudent(profile);
+    setShowStudentVerificationModal(false);
+    if (verifyingAssessment) {
+      setActiveLiveAssessment(verifyingAssessment);
+    }
+    setShowStudentAssessmentModal(true);
+    addToast(
+      'Identity Verified',
+      `Welcome, ${profile.name} (${profile.class}). Authenticated via ${
+        profile.verifiedVia === 'nfc'
+          ? 'NFC Smart Card'
+          : profile.verifiedVia === 'face'
+          ? 'Facial Recognition Biometrics'
+          : 'Dual Factor (NFC & Face)'
+      }.`,
+      'success'
+    );
+  };
 
   const saveLiveAssessment = (assessment: LiveInClassAssessment) => {
     setLiveAssessments((prev) => {
@@ -1762,6 +1824,24 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setShowTeacherAssessmentReviewModal,
         showAssessmentCreatorModal,
         setShowAssessmentCreatorModal,
+
+        // Assessment Link & QR Code Sharing
+        sharingAssessment,
+        setSharingAssessment,
+        showShareAssessmentModal,
+        setShowShareAssessmentModal,
+        openShareAssessment,
+        closeShareAssessment,
+
+        // Student Identity Verification (NFC/RFID & Face Scan)
+        verifyingAssessment,
+        setVerifyingAssessment,
+        showStudentVerificationModal,
+        setShowStudentVerificationModal,
+        verifiedStudent,
+        setVerifiedStudent,
+        openStudentVerification,
+        completeStudentVerification,
 
         scheduleNewExam,
         updateExamStatus,

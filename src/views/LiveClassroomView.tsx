@@ -37,6 +37,7 @@ import {
   Check,
   Plus,
   Eye,
+  QrCode,
 } from 'lucide-react';
 import { LiveAssessmentStudentModal } from '../components/modals/LiveAssessmentStudentModal';
 import { LiveAssessmentTeacherReviewModal } from '../components/modals/LiveAssessmentTeacherReviewModal';
@@ -56,6 +57,8 @@ export const LiveClassroomView: React.FC = () => {
     setShowStudentAssessmentModal,
     setShowTeacherAssessmentReviewModal,
     setShowAssessmentCreatorModal,
+    openShareAssessment,
+    openStudentVerification,
   } = useExam();
 
   const currentClass = activeLiveClass || onlineClasses[0];
@@ -725,26 +728,43 @@ export const LiveClassroomView: React.FC = () => {
                       {classroomRole === 'teacher' ? (
                         <>
                           <button
-                            onClick={() => setShowTeacherAssessmentReviewModal(true)}
-                            className="w-full py-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all duration-200"
+                            onClick={() => openShareAssessment(activeLiveAssessment)}
+                            className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                           >
-                            <Award className="w-3.5 h-3.5 text-white" />
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>Share QR Code & Direct Link</span>
+                          </button>
+
+                          <button
+                            onClick={() => setShowTeacherAssessmentReviewModal(true)}
+                            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all duration-200"
+                          >
+                            <Award className="w-3.5 h-3.5 text-amber-400" />
                             <span>View Live Submissions ({activeLiveAssessment.submissions.length})</span>
                           </button>
-                          <button
-                            onClick={() => setShowStudentAssessmentModal(true)}
-                            className="w-full py-1 text-[10px] text-slate-400 hover:text-slate-200 text-center font-medium"
-                          >
-                            Preview Student Test Solving →
-                          </button>
+
+                          <div className="flex items-center justify-between pt-0.5">
+                            <button
+                              onClick={() => openStudentVerification(activeLiveAssessment)}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1"
+                            >
+                              <span>Test NFC/Face Verification →</span>
+                            </button>
+                            <button
+                              onClick={() => setShowStudentAssessmentModal(true)}
+                              className="text-[10px] text-slate-400 hover:text-slate-200 font-medium"
+                            >
+                              Direct Preview
+                            </button>
+                          </div>
                         </>
                       ) : (
                         <button
-                          onClick={() => setShowStudentAssessmentModal(true)}
-                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-all animate-pulse"
+                          onClick={() => openStudentVerification(activeLiveAssessment)}
+                          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 transition-all animate-pulse cursor-pointer"
                         >
-                          <Zap className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Answer Spot Quiz Now</span>
+                          <Zap className="w-4 h-4 text-amber-300" />
+                          <span>Tap NFC Card / Face Scan to Enter Quiz</span>
                         </button>
                       )}
                     </div>
@@ -792,6 +812,14 @@ export const LiveClassroomView: React.FC = () => {
                             >
                               <Send className="w-3 h-3" />
                               <span>{isCurrentActive ? 'Re-broadcast' : 'Share to Class'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => openShareAssessment(ass)}
+                              className="px-2 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold"
+                              title="Generate QR Code & Link"
+                            >
+                              <QrCode className="w-3 h-3" />
                             </button>
 
                             <button
@@ -952,7 +980,6 @@ export const LiveClassroomView: React.FC = () => {
       </div>
 
       {/* In-Class Modals */}
-      <LiveAssessmentStudentModal />
       <LiveAssessmentTeacherReviewModal />
       <LiveAssessmentCreatorModal />
     </div>

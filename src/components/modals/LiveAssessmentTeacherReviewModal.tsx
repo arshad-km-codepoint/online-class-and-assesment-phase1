@@ -258,6 +258,18 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                     <p className="text-xs text-slate-500 font-mono">
                       Roll No: {selectedSub.rollNo} • Submitted at {selectedSub.submittedAt}
                     </p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1">
+                        ✓ {selectedSub.verifiedVia === 'nfc'
+                          ? `RFID/NFC Smartcard Verified (${selectedSub.verificationDetails?.cardUid || '04:A2:8B:E3:71'})`
+                          : selectedSub.verifiedVia === 'face'
+                          ? 'Biometric Facial Scan (99.4% Match)'
+                          : 'Dual-Factor Authenticated (Card & Face)'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        Auth Timestamp: {selectedSub.verificationDetails?.verifiedAt || selectedSub.submittedAt}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

@@ -27,7 +27,54 @@ import {
   OnlineClass,
   LiveInClassAssessment,
   LiveAssessmentSubmission,
+  StudentSmartCard,
 } from '../types';
+
+// -------------------------------------------------------------
+// Registered Student Smartcards & Biometric NFC/RFID Registry
+// -------------------------------------------------------------
+export const mockStudentSmartCards: StudentSmartCard[] = [
+  {
+    cardUid: '04:A2:8B:E3:71',
+    studentId: 's-1',
+    name: 'Aarav Sharma',
+    rollNo: '1001',
+    admissionNo: 'ADM-2024-001',
+    classGrade: 'Class 10 - Sec A',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+    cardColor: 'from-amber-600 to-orange-700',
+  },
+  {
+    cardUid: '04:D8:12:F9:3B',
+    studentId: 'st-102',
+    name: 'Ananya Patel',
+    rollNo: '1002',
+    admissionNo: 'ADM-2024-002',
+    classGrade: 'Class 10 - Sec A',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    cardColor: 'from-blue-600 to-indigo-800',
+  },
+  {
+    cardUid: '04:C5:91:AA:22',
+    studentId: 's-5',
+    name: 'Kabir Sharma',
+    rollNo: '1003',
+    admissionNo: 'ADM-2024-092',
+    classGrade: 'Class 10 - Sec A',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    cardColor: 'from-emerald-600 to-teal-800',
+  },
+  {
+    cardUid: '04:E1:44:88:9C',
+    studentId: 's-4',
+    name: 'Diya Sharma',
+    rollNo: '1004',
+    admissionNo: 'ADM-2024-044',
+    classGrade: 'Class 10 - Sec B',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    cardColor: 'from-purple-600 to-pink-700',
+  },
+];
 
 // -------------------------------------------------------------
 // Parent Account with Multiple Children / Students

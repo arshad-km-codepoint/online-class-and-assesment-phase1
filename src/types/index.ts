@@ -1108,6 +1108,38 @@ export interface LiveAssessmentSubmission {
   percentage: number;
   status: 'submitted' | 'reviewed';
   teacherFeedback?: string;
+  verifiedVia?: 'nfc' | 'face' | 'both';
+  verificationDetails?: {
+    cardUid?: string;
+    faceConfidence?: number;
+    verifiedAt: string;
+    authMethodLabel?: string;
+  };
+}
+
+export interface StudentVerificationProfile {
+  id: string;
+  name: string;
+  rollNo: string;
+  admissionNo: string;
+  class: string;
+  section: string;
+  avatar: string;
+  cardUid?: string;
+  verifiedVia: 'nfc' | 'face' | 'both';
+  verifiedAt: string;
+  confidenceScore?: number;
+}
+
+export interface StudentSmartCard {
+  cardUid: string;
+  studentId: string;
+  name: string;
+  rollNo: string;
+  admissionNo: string;
+  classGrade: string;
+  avatar: string;
+  cardColor?: string;
 }
 
 export interface LiveInClassAssessment {
