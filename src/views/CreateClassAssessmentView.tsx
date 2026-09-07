@@ -1532,13 +1532,13 @@ export const CreateClassAssessmentView: React.FC = () => {
       </div>}
 
       {/* Bottom Save & Launch Floating Bar */}
-      <div className="sticky bottom-0 z-10 p-4 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 shadow-lg flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3 text-xs text-slate-600">
-          <span className="font-bold text-slate-900">{questions.length} Questions</span>
+      <div className="sticky bottom-0 z-10 p-4 bg-white/95 dark:bg-[#1a2130]/95 backdrop-blur rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+          <span className="font-bold text-slate-900 dark:text-slate-100">{questions.length} Questions</span>
           <span>•</span>
-          <span className="font-bold text-blue-600">{totalCalculatedMarks} Total Marks</span>
+          <span className="font-bold text-[#f39223]">{totalCalculatedMarks} Total Marks</span>
           <span>•</span>
-          <span className="font-semibold text-slate-600">
+          <span className="font-semibold text-slate-600 dark:text-slate-400">
             {durationSeconds > 0 ? `${Math.floor(durationSeconds / 60)} Mins` : 'Untimed'}
           </span>
         </div>
@@ -1547,30 +1547,40 @@ export const CreateClassAssessmentView: React.FC = () => {
           <button
             type="button"
             onClick={() => step > 0 ? goToStep(step - 1) : setActiveTab('online-class-assessments')}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300"
+            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 transition-colors"
           >
             {step > 0 ? 'Back' : 'Cancel'}
           </button>
 
-          {step < 2 ? <button onClick={() => goToStep(step + 1)} className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">{step === 0 ? 'Continue to questions' : 'Continue to review'} →</button> : <>
-          <button
-            type="button"
-            onClick={() => handleSaveToBank(false)}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Assessment</span>
-          </button>
+          {step < 2 ? (
+            <button
+              onClick={() => goToStep(step + 1)}
+              className="px-5 py-2.5 rounded-xl bg-[#f39223] hover:bg-[#e08217] text-white text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-1.5"
+            >
+              <span>{step === 0 ? 'Continue to questions' : 'Continue to review'}</span>
+              <span>→</span>
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => handleSaveToBank(false)}
+                className="px-5 py-2.5 bg-[#f39223] hover:bg-[#e08217] text-white text-xs font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Assessment</span>
+              </button>
 
-          <button
-            type="button"
-            onClick={handleSaveAndLaunchLive}
-            className="px-5 py-2.5 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 flex items-center gap-2"
-          >
-            <Zap className="w-4 h-4 text-amber-300" />
-            <span>Save & Share in Live Class</span>
-          </button>
-          </>}
+              <button
+                type="button"
+                onClick={handleSaveAndLaunchLive}
+                className="px-5 py-2.5 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4 text-amber-300" />
+                <span>Save & Share in Live Class</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

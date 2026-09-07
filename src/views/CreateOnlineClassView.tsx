@@ -1060,7 +1060,7 @@ export const CreateOnlineClassView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveStep((prev) => Math.min(prev + 1, 5))}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+                className="px-5 py-2.5 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:shadow-md transition-all duration-200"
               >
                 Next Step
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1070,7 +1070,7 @@ export const CreateOnlineClassView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleCreateClass(false)}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all"
+                  className="px-5 py-2.5 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Save & Publish Schedule
