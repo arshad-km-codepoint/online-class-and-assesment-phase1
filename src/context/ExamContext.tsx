@@ -312,16 +312,96 @@ interface ExamContextType {
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
 
+const VALID_TEACHER_TABS: ActiveNavTab[] = [
+  'dashboard',
+  'question-pool',
+  'online-classes',
+  'online-class-assessments',
+  'create-class-assessment',
+  'create-online-class',
+  'live-classroom',
+];
+
+const VALID_STUDENT_TABS: ActiveNavTab[] = [
+  'dashboard',
+  'student-online-classes',
+  'live-classroom',
+];
+
+const getTabFromPath = (pathname: string): { tab: ActiveNavTab; inferredMode?: PortalMode } | null => {
+  if (typeof window === 'undefined') return null;
+  const clean = pathname.replace(/^\/+/, '').replace(/\/+$/, '') as ActiveNavTab;
+  if (!clean) return null;
+  if (clean === 'student-online-classes') {
+    return { tab: clean, inferredMode: 'parent_student' };
+  }
+  if (VALID_TEACHER_TABS.includes(clean)) {
+    return { tab: clean, inferredMode: 'teacher' };
+  }
+  if (VALID_STUDENT_TABS.includes(clean)) {
+    return { tab: clean, inferredMode: 'parent_student' };
+  }
+  return null;
+};
+
+const syncUrlPath = (tab: ActiveNavTab, replace = false) => {
+  if (typeof window === 'undefined') return;
+  const targetPath = `/${tab}`;
+  if (window.location.pathname !== targetPath) {
+    if (replace) {
+      window.history.replaceState({ tab }, '', targetPath);
+    } else {
+      window.history.pushState({ tab }, '', targetPath);
+    }
+  }
+};
+
 export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userRole, setUserRoleState] = useState<UserRole>('teacher');
-  const [portalMode, setPortalModeState] = useState<PortalMode>('teacher');
-  const [activeTab, setActiveTabState] = useState<ActiveNavTab>('online-classes');
+  const initialUrlInfo = typeof window !== 'undefined' ? getTabFromPath(window.location.pathname) : null;
+
+  const [userRole, setUserRoleState] = useState<UserRole>(
+    initialUrlInfo?.inferredMode === 'parent_student' ? 'student' : 'teacher'
+  );
+  const [portalMode, setPortalModeState] = useState<PortalMode>(
+    initialUrlInfo?.inferredMode === 'parent_student' ? 'parent_student' : 'teacher'
+  );
+  const [activeTab, setActiveTabState] = useState<ActiveNavTab>(
+    initialUrlInfo?.tab || 'dashboard'
+  );
+
   const setActiveTab = (tab: ActiveNavTab) => {
-    const teacherTabs: ActiveNavTab[] = ['question-pool', 'online-classes', 'online-class-assessments', 'create-class-assessment', 'create-online-class', 'live-classroom'];
-    const studentTabs: ActiveNavTab[] = ['student-online-classes', 'live-classroom'];
-    const allowed = portalMode === 'teacher' ? teacherTabs : studentTabs;
-    setActiveTabState(allowed.includes(tab) ? tab : portalMode === 'teacher' ? 'online-classes' : 'student-online-classes');
+    const allowed = portalMode === 'teacher' ? VALID_TEACHER_TABS : VALID_STUDENT_TABS;
+    const targetTab = allowed.includes(tab) ? tab : 'dashboard';
+    setActiveTabState(targetTab);
+    syncUrlPath(targetTab);
   };
+
+  // Sync with browser back/forward and initial path normalization
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const initial = getTabFromPath(window.location.pathname);
+    if (!initial) {
+      // e.g. '/' or unknown route
+      syncUrlPath(activeTab, true);
+    }
+
+    const handlePopState = () => {
+      const parsed = getTabFromPath(window.location.pathname);
+      if (parsed) {
+        setActiveTabState(parsed.tab);
+        if (parsed.inferredMode && parsed.inferredMode !== portalMode) {
+          setPortalModeState(parsed.inferredMode);
+          setUserRoleState(parsed.inferredMode === 'parent_student' ? 'student' : 'teacher');
+        }
+      } else {
+        setActiveTabState('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [portalMode]);
 
   const [accommodations, setAccommodations] = useState<StudentAccommodation[]>(initialAccommodations);
 
@@ -329,15 +409,18 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserRoleState(role);
     if (role === 'teacher' || role === 'admin' || role === 'coordinator') {
       setPortalModeState('teacher');
-      setActiveTabState('online-classes');
+      setActiveTabState('dashboard');
+      syncUrlPath('dashboard');
       addToast('Role Changed', 'Switched to Teacher role context', 'info');
     } else if (role === 'student') {
       setPortalModeState('parent_student');
-      setActiveTabState('student-online-classes');
+      setActiveTabState('dashboard');
+      syncUrlPath('dashboard');
       addToast('Role Changed', 'Switched to Student & Parent Portal context', 'info');
     } else if (role === 'proctor') {
       setPortalModeState('teacher');
       setActiveTab('exam-monitoring');
+      syncUrlPath('exam-monitoring');
       addToast('Role Changed', 'Switched to Invigilator / Proctor monitoring workspace', 'info');
     }
   };
@@ -462,6 +545,9 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .filter(q => q && typeof q.id === 'string' && typeof q.prompt === 'string' && typeof q.subject === 'string' && typeof q.topic === 'string' && q.type !== 'short_answer' && ['mcq', 'mmcq', 'fill_in_blanks', 'match_following', 'step_ordering'].includes(q.type))
             .map(q => ({
               ...q,
+              board: q.board || 'CBSE',
+              classGrade: q.classGrade || 'Class 10',
+              chapter: q.chapter || '',
               bloomsTaxonomy: q.bloomsTaxonomy || 'Apply',
             }));
           if (valid.length > 0) return valid;
@@ -469,8 +555,15 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch { /* Use starter questions when storage is unavailable or invalid. */ }
     return initialLiveAssessments.flatMap(assessment => assessment.questions.map(q => ({
-      ...structuredClone(q), id: `pool-${assessment.id}-${q.id}`, sectionId: undefined,
-      subject: assessment.subject, topic: assessment.topic, difficulty: 'Medium' as const,
+      ...structuredClone(q),
+      id: `pool-${assessment.id}-${q.id}`,
+      sectionId: undefined,
+      board: q.board || assessment.board || 'CBSE',
+      classGrade: q.classGrade || assessment.classGrade || (assessment.targetClass?.includes('12') ? 'Class 12' : assessment.targetClass?.includes('11') ? 'Class 11' : 'Class 10'),
+      chapter: q.chapter || assessment.chapter || (assessment.topic?.includes(':') ? assessment.topic.split(':')[0].trim() : assessment.topic),
+      subject: assessment.subject,
+      topic: assessment.topic,
+      difficulty: 'Medium' as const,
       bloomsTaxonomy: q.bloomsTaxonomy || 'Apply' as const,
     })));
   });
@@ -925,11 +1018,11 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setPortalMode = (mode: PortalMode) => {
     setPortalModeState(mode);
     setUserRoleState(mode === 'teacher' ? 'teacher' : 'student');
+    setActiveTabState('dashboard');
+    syncUrlPath('dashboard');
     if (mode === 'parent_student') {
-      setActiveTabState('student-online-classes');
       addToast('Parent & Student Portal Activated', `Viewing as ${parentAccount.parentName}`, 'info');
     } else {
-      setActiveTabState('online-classes');
       addToast('Teacher Portal Activated', 'Switched to Teacher Online Class Portal', 'info');
     }
   };

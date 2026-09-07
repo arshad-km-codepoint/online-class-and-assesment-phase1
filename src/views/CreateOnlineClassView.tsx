@@ -268,7 +268,7 @@ export const CreateOnlineClassView: React.FC = () => {
   return (
     <PageWrapper
       breadcrumbs={[
-        { label: 'Dashboard', onClick: () => setActiveTab('online-classes') },
+        { label: 'Dashboard', onClick: () => setActiveTab('dashboard') },
         { label: 'Online Classes', onClick: () => setActiveTab('online-classes') },
         { label: 'New Class Creation Studio', active: true },
       ]}

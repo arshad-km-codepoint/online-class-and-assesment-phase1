@@ -5,6 +5,8 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { ToastContainer } from './components/common/ToastContainer';
 
+import { DashboardView } from './views/DashboardView';
+
 // Teacher Views
 import { OnlineClassesListView } from './views/OnlineClassesListView';
 import { OnlineClassAssessmentsView } from './views/OnlineClassAssessmentsView';
@@ -21,7 +23,7 @@ const MainContent: React.FC = () => {
   // When teacher/student is in live video classroom studio, render full screen WebRTC broadcast environment
   if (activeTab === 'live-classroom') {
     return (
-      <div className="h-screen w-screen overflow-hidden bg-slate-950 font-sans">
+      <div className="h-full w-full overflow-hidden bg-slate-950 font-sans">
         <LiveClassroomView />
         <ToastContainer />
       </div>
@@ -29,17 +31,20 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[var(--bg-main-light)]">
+    <div className="flex h-full w-full overflow-hidden bg-[var(--bg-main-light)]">
       {/* Sidebar Navigation */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg-main-light)]">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[var(--bg-main-light)]">
         {/* Header Bar */}
         <Header />
 
         {/* View Container */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {/* Main Dashboard (Teacher & Student) */}
+          {activeTab === 'dashboard' && <DashboardView />}
+
           {/* Teacher Views */}
           {activeTab === 'online-classes' && <OnlineClassesListView />}
           {activeTab === 'online-class-assessments' && <OnlineClassAssessmentsView />}

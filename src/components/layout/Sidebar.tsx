@@ -43,7 +43,7 @@ export const Sidebar: React.FC = () => {
         {
           items: [
             {
-              id: 'online-classes',
+              id: 'dashboard',
               label: 'Dashboard',
               icon: <LayoutDashboard size={17} />,
             },
@@ -90,7 +90,7 @@ export const Sidebar: React.FC = () => {
         {
           items: [
             {
-              id: 'student-online-classes',
+              id: 'dashboard',
               label: 'Dashboard',
               icon: <LayoutDashboard size={17} />,
             },
@@ -108,13 +108,7 @@ export const Sidebar: React.FC = () => {
         },
       ];
 
-  const isItemActive = (id: ActiveNavTab, label: string) => {
-    if (label === 'Dashboard') {
-      return activeTab === id;
-    }
-    if (id === 'online-classes') {
-      return activeTab === 'online-classes';
-    }
+  const isItemActive = (id: ActiveNavTab, _label: string) => {
     return activeTab === id;
   };
 
@@ -145,7 +139,7 @@ export const Sidebar: React.FC = () => {
       {/* Sidebar Container */}
       <aside
         id="app-sidebar"
-        className={`fixed inset-y-0 left-0 z-30 md:static w-64 max-w-[85vw] md:max-w-none bg-[var(--bg-sidebar)] text-[var(--text-primary)] flex flex-col shrink-0 border-r border-[var(--border-color)] h-screen overflow-y-auto transition-transform duration-200 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-30 md:static w-64 max-w-[85vw] md:max-w-none bg-[var(--bg-sidebar)] text-[var(--text-primary)] flex flex-col shrink-0 border-r border-[var(--border-color)] h-full overflow-y-auto transition-transform duration-200 ease-in-out ${
           mobileOpen ? 'translate-x-0 visible' : '-translate-x-full invisible'
         } md:translate-x-0 md:visible`}
       >

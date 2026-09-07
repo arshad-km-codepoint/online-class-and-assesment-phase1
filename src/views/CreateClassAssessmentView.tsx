@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { QuestionPoolBrowser } from '../components/QuestionPoolBrowser';
+import { AcademicTaxonomyBar } from '../components/common/AcademicTaxonomyBar';
 import { defaultAssessmentSection, sectionIdFor, orderQuestionsBySection } from '../utils/assessmentSections';
 import { bloomsTaxonomyLevels, bloomsTaxonomyColors } from '../utils/questionPool';
 import { useExam } from '../context/ExamContext';
@@ -49,8 +50,17 @@ export const CreateClassAssessmentView: React.FC = () => {
   const [title, setTitle] = useState<string>(
     editingLiveAssessment?.title || 'Spot Check: New In-Class Assessment'
   );
+  const [board, setBoard] = useState<string>(
+    editingLiveAssessment?.board || 'CBSE'
+  );
+  const [classGrade, setClassGrade] = useState<string>(
+    editingLiveAssessment?.classGrade || 'Class 12'
+  );
   const [subject, setSubject] = useState<string>(
     editingLiveAssessment?.subject || 'Physics'
+  );
+  const [chapter, setChapter] = useState<string>(
+    editingLiveAssessment?.chapter || 'Electricity & Electromagnetic Induction'
   );
   const [topic, setTopic] = useState<string>(
     editingLiveAssessment?.topic || 'Core Concepts & Analytical Application'
@@ -492,7 +502,10 @@ export const CreateClassAssessmentView: React.FC = () => {
     return {
       id: assessmentId,
       title: title.trim() || 'Untitled Online Class Assessment',
+      board,
+      classGrade,
       subject,
+      chapter,
       topic: topic.trim() || 'General Unit',
       targetClass,
       durationSeconds,
@@ -578,7 +591,7 @@ export const CreateClassAssessmentView: React.FC = () => {
   return (
     <PageWrapper
       breadcrumbs={[
-        { label: 'Dashboard', onClick: () => setActiveTab('online-classes') },
+        { label: 'Dashboard', onClick: () => setActiveTab('dashboard') },
         { label: 'Class Assessments', onClick: () => setActiveTab('online-class-assessments') },
         { label: editingLiveAssessment ? 'Edit Assessment' : 'New Assessment', active: true },
       ]}
@@ -641,80 +654,77 @@ export const CreateClassAssessmentView: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Assessment Title */}
-          <div className="lg:col-span-2 space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">
-              Assessment Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              aria-label="Assessment title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Spot Check: Differentiation Rules & Applications"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
-            />
+        <div className="space-y-4">
+          {/* Assessment Title and Target Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800">
+                Assessment Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                aria-label="Assessment title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Spot Check: Differentiation Rules & Applications"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800">Target Cohort / Section</label>
+              <select
+                aria-label="Target class"
+                value={targetClass}
+                onChange={(e) => setTargetClass(e.target.value)}
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
+              >
+                <option value="Grade 12 - Section A">Grade 12 - Section A</option>
+                <option value="Grade 12 - Section B">Grade 12 - Section B</option>
+                <option value="Grade 11 - Section A">Grade 11 - Section A</option>
+                <option value="Grade 11 - Section B">Grade 11 - Section B</option>
+                <option value="Grade 10 - Section A">Grade 10 - Section A</option>
+                <option value="All Classes">All Classes (General Pool)</option>
+              </select>
+            </div>
           </div>
 
-          {/* Subject */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">Subject</label>
-            <select
-              aria-label="Subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
-            >
-              <option value="Physics">Physics</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Chemistry">Chemistry</option>
-              <option value="Biology">Biology</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="English">English</option>
-            </select>
+          {/* Academic Curriculum Hierarchy Bar (CBSE | Select class | Select subject | Select chapter | Select topic) */}
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-slate-800">
+                Academic Curriculum Hierarchy (Board · Class · Subject · Chapter · Topic)
+              </label>
+              <span className="text-[11px] text-slate-500 font-medium">Used to find matching pool questions</span>
+            </div>
+            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200">
+              <AcademicTaxonomyBar
+                values={{ board, classGrade, subject, chapter, topic }}
+                onChange={(next) => {
+                  setBoard(next.board);
+                  setClassGrade(next.classGrade);
+                  setSubject(next.subject);
+                  setChapter(next.chapter);
+                  setTopic(next.topic);
+                }}
+              />
+            </div>
           </div>
-
-          {/* Target Class / Grade */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">Target Class</label>
-            <select
-              aria-label="Target class"
-              value={targetClass}
-              onChange={(e) => setTargetClass(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
-            >
-              <option value="Grade 12 - Section A">Grade 12 - Section A</option>
-              <option value="Grade 12 - Section B">Grade 12 - Section B</option>
-              <option value="Grade 11 - Section A">Grade 11 - Section A</option>
-              <option value="Grade 11 - Section B">Grade 11 - Section B</option>
-              <option value="Grade 10 - Section A">Grade 10 - Section A</option>
-              <option value="All Classes">All Classes (General Pool)</option>
-            </select>
-          </div>
-
-          {/* Topic */}
-          <div className="lg:col-span-2 space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800">Topic / Chapter Unit</label>
-            <input
-              type="text"
-              aria-label="Topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. Calculus: Chain Rule & Implicit Differentiation"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
-            />
-          </div>
-
         </div>
         <div className="rounded-xl bg-[#fff4e6] p-4 text-sm text-[#c26d15] border border-[#fcd8b3]">Next, search the question pool and select questions. You can adjust the timer and passing marks in the final step.</div>
       </div>
       </>}
 
       {step === 1 && <>
-      <QuestionPoolBrowser usedIds={questions.flatMap(q => q.poolQuestionId ? [q.poolQuestionId] : [])} onAdd={items => {
+      <QuestionPoolBrowser
+        usedIds={questions.flatMap(q => q.poolQuestionId ? [q.poolQuestionId] : [])}
+        initialTaxonomy={{ board, classGrade, subject, chapter, topic }}
+        onAdd={items => {
         const additions = items.filter(item => !questions.some(q => q.poolQuestionId === item.id)).map(item => ({
           ...structuredClone(item), id: crypto.randomUUID(), poolQuestionId: item.id, sectionId: activeSection.id,
+          board: item.board || board,
+          classGrade: item.classGrade || classGrade,
+          chapter: item.chapter || chapter,
           bloomsTaxonomy: item.bloomsTaxonomy || 'Apply',
         }));
         setQuestions(prev => [...prev, ...additions]);

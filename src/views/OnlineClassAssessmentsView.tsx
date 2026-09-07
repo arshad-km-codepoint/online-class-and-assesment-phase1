@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useExam } from '../context/ExamContext';
 import { PageWrapper } from '../components/layout/PageWrapper';
+import { AcademicTaxonomyBar, type AcademicTaxonomyValues } from '../components/common/AcademicTaxonomyBar';
 import { LiveInClassAssessment, LiveAssessmentQuestion } from '../types';
 import {
   Video,
@@ -37,10 +38,16 @@ export const OnlineClassAssessmentsView: React.FC = () => {
     setActiveLiveClass,
   } = useExam();
 
+  const [taxonomy, setTaxonomy] = useState<AcademicTaxonomyValues>({
+    board: 'CBSE',
+    classGrade: '',
+    subject: '',
+    chapter: '',
+    topic: '',
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedClass, setSelectedClass] = useState('all');
   const [expandedAssessmentId, setExpandedAssessmentId] = useState<string | null>(null);
   const [previewAssessment, setPreviewAssessment] = useState<LiveInClassAssessment | null>(null);
   const [launchModalAssessment, setLaunchModalAssessment] = useState<LiveInClassAssessment | null>(null);
@@ -53,18 +60,33 @@ export const OnlineClassAssessmentsView: React.FC = () => {
     const matchesSearch =
       ass.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ass.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ass.topic.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || ass.subject === selectedSubject;
+      ass.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (ass.chapter && ass.chapter.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesBoard = !taxonomy.board || !ass.board || ass.board.toLowerCase() === taxonomy.board.toLowerCase();
+    const matchesClass =
+      !taxonomy.classGrade ||
+      (ass.classGrade && ass.classGrade.toLowerCase().includes(taxonomy.classGrade.toLowerCase())) ||
+      (ass.targetClass && ass.targetClass.toLowerCase().includes(taxonomy.classGrade.toLowerCase()));
+    const matchesSubject = !taxonomy.subject || ass.subject.toLowerCase() === taxonomy.subject.toLowerCase();
+    const matchesChapter = !taxonomy.chapter || (ass.chapter && ass.chapter.toLowerCase().includes(taxonomy.chapter.toLowerCase()));
+    const matchesTopic = !taxonomy.topic || ass.topic.toLowerCase().includes(taxonomy.topic.toLowerCase());
+
     const matchesStatus =
       selectedStatus === 'all' ||
       (selectedStatus === 'draft' && ass.isDraft) ||
       (selectedStatus === 'active' && ass.status === 'active' && !ass.isDraft) ||
       (selectedStatus === 'published' && ass.status === 'published');
-    const matchesClass =
-      selectedClass === 'all' ||
-      !ass.targetClass ||
-      ass.targetClass.toLowerCase().includes(selectedClass.toLowerCase());
-    return matchesSearch && matchesSubject && matchesStatus && matchesClass;
+
+    return (
+      matchesSearch &&
+      matchesBoard &&
+      matchesClass &&
+      matchesSubject &&
+      matchesChapter &&
+      matchesTopic &&
+      matchesStatus
+    );
   });
 
   // Calculate statistics
@@ -168,7 +190,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
   return (
     <PageWrapper
       breadcrumbs={[
-        { label: 'Dashboard', onClick: () => setActiveTab('online-classes') },
+        { label: 'Dashboard', onClick: () => setActiveTab('dashboard') },
         { label: 'Class Assessments', active: true },
       ]}
       title="Online Class Assessments & Quizzes"
@@ -235,59 +257,53 @@ export const OnlineClassAssessmentsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Filter & Search Bar (Section 5.E Blueprint) */}
-        <div className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm p-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="relative flex-1 w-full">
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
-              <Search className="w-4 h-4" />
+        {/* Academic Curriculum Taxonomy Filter Bar */}
+        <div className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+              Filter by Academic Curriculum
             </span>
-            <input
-              type="text"
-              placeholder="Search assessments by title, subject, or topic..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] py-2 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            <span className="text-xs text-[var(--text-muted)] font-medium">
+              {filteredAssessments.length} assessment{filteredAssessments.length === 1 ? '' : 's'} matching
+            </span>
+          </div>
+
+          {/* 5-Dropdown Academic Taxonomy Header Bar (CBSE | Select class | Select subject | Select chapter | Select topic) */}
+          <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--bg-main)] border border-slate-200 dark:border-[var(--border-color)]">
+            <AcademicTaxonomyBar
+              values={taxonomy}
+              onChange={setTaxonomy}
+              showClear
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
-            {/* Subject Filter */}
-            <select
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-            >
-              <option value="all">All Subjects</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Physics">Physics</option>
-              <option value="Chemistry">Chemistry</option>
-              <option value="Biology">Biology</option>
-              <option value="Computer Science">Computer Science</option>
-            </select>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-1">
+            <div className="relative flex-1 w-full">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                placeholder="Search assessments by title, prompt keywords, or topic..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] py-2 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              />
+            </div>
 
-            {/* Status Filter */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active Live</option>
-              <option value="published">Completed/Published</option>
-              <option value="draft">Drafts</option>
-            </select>
-
-            {/* Target Class Filter */}
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
-            >
-              <option value="all">All Classes</option>
-              <option value="Grade 12">Grade 12</option>
-              <option value="Grade 11">Grade 11</option>
-              <option value="Grade 10">Grade 10</option>
-            </select>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <select
+                aria-label="Filter by status"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-xs font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] cursor-pointer"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active Live</option>
+                <option value="published">Completed/Published</option>
+                <option value="draft">Drafts</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -330,12 +346,22 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                 <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {ass.board && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                          {ass.board}
+                        </span>
+                      )}
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3]">
                         {ass.subject}
                       </span>
-                      {ass.targetClass && (
+                      {(ass.classGrade || ass.targetClass) && (
                         <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          {ass.targetClass}
+                          {ass.classGrade || ass.targetClass}
+                        </span>
+                      )}
+                      {ass.chapter && (
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                          {ass.chapter}
                         </span>
                       )}
                       {ass.status === 'active' && !ass.isDraft && (

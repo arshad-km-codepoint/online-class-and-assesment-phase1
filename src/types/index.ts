@@ -1073,6 +1073,10 @@ export interface LiveAssessmentQuestion {
   // Step Ordering / Sequence Proof fields (e.g. Maths problem solving steps with distractors)
   orderedSteps?: string[];
   distractorSteps?: string[];
+  // Academic curriculum taxonomy fields
+  board?: string;
+  classGrade?: string;
+  chapter?: string;
   // Short Answer fields
   sampleAnswer?: string;
   keywords?: string[];
@@ -1110,7 +1114,10 @@ export interface LiveInClassAssessment {
   id: string;
   classId?: string;
   title: string;
+  board?: string;
+  classGrade?: string;
   subject: string;
+  chapter?: string;
   topic: string;
   targetClass?: string;
   durationSeconds: number; // e.g. 180 (3 minutes), 0 for untimed
@@ -1129,8 +1136,12 @@ export interface LiveInClassAssessment {
 
 
 export interface PoolQuestion extends LiveAssessmentQuestion {
+  board?: string;
+  classGrade?: string;
   subject: string;
+  chapter?: string;
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard";
   bloomsTaxonomy?: BloomsTaxonomyLevel;
 }
+

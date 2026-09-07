@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const StudentOnlineClassesView: React.FC = () => {
-  const { onlineClasses, selectedChild, startLiveClass, addToast } = useExam();
+  const { onlineClasses, selectedChild, startLiveClass, setActiveTab, addToast } = useExam();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'live' | 'upcoming' | 'recordings'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +53,7 @@ export const StudentOnlineClassesView: React.FC = () => {
   return (
     <PageWrapper
       breadcrumbs={[
-        { label: 'Dashboard' },
+        { label: 'Dashboard', onClick: () => setActiveTab('dashboard') },
         { label: 'Online Classes', active: true },
       ]}
       title="Live Classes & Lecture Archive"

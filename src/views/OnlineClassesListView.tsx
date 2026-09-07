@@ -93,7 +93,7 @@ export const OnlineClassesListView: React.FC = () => {
   return (
     <PageWrapper
       breadcrumbs={[
-        { label: 'Dashboard', onClick: () => setActiveTab('online-classes') },
+        { label: 'Dashboard', onClick: () => setActiveTab('dashboard') },
         { label: 'Online Classes', active: true },
       ]}
       title="Online Classes & Virtual Lectures"
