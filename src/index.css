@@ -1,23 +1,108 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --primary-navy: #0f172a;
-    --navy-card: #1e293b;
-    --brand-blue: #2563eb;
-    --brand-blue-hover: #1d4ed8;
-    --status-normal: #10b981;
-    --status-warning: #f59e0b;
-    --status-danger: #ef4444;
-  }
+:root {
+  /* ================= Brand & Primary ================= */
+  --primary: #f39223;               /* Warm Orange / Amber */
+  --primary-light: #ffedd5;         /* Orange 100 tint */
+  --primary-hover: #ea580c;         /* Orange 600 */
+
+  /* ================= Neutrals & Backgrounds ================= */
+  --bg-sidebar: #ffffff;
+  --bg-main: #fcfcfc;
+  --bg-main-light: #f8f7f5;
+  --bg-card: #ffffff;
+
+  /* ================= Text Colors ================= */
+  --text-primary: #111827;          /* Slate 900 */
+  --text-secondary: #6b7280;        /* Slate 500 */
+  --text-muted: #9ca3af;            /* Slate 400 */
+
+  /* ================= Borders & Navigation ================= */
+  --border-color: #e5e7eb;          /* Slate 200 */
+  --sidebar-active: #ffedd5;        /* Active item background */
+  --sidebar-active-text: #f39223;   /* Active item text */
+
+  /* ================= Status Tokens (5-Part System) ================= */
+  /* Success */
+  --status-success-bg: #ecfdf3;
+  --status-success-border: #bbf7d0;
+  --status-success-text: #166534;
+  --status-success-icon: #15803d;
+  --status-success-icon-bg: #dcfce7;
+
+  /* Warning / Notice */
+  --status-warning-bg: #fff7ed;
+  --status-warning-border: #fed7aa;
+  --status-warning-text: #c2410c;
+  --status-warning-icon: #b45309;
+  --status-warning-icon-bg: #ffedd5;
+
+  /* Error / Destructive */
+  --status-error-bg: #fef2f2;
+  --status-error-border: #fecaca;
+  --status-error-text: #b91c1c;
+  --status-error-icon: #dc2626;
+  --status-error-icon-bg: #fee2e2;
+}
+
+[data-theme='dark'] {
+  /* ================= Dark Mode Brand ================= */
+  --primary: #f39223;
+  --primary-light: #2d1a0b;
+  --primary-hover: #fb923c;
+
+  /* ================= Dark Mode Neutrals ================= */
+  --bg-sidebar: #111827;            /* Gray 900 */
+  --bg-main: #030712;               /* Gray 950 */
+  --bg-main-light: #030712;
+  --bg-card: #1f2937;               /* Gray 800 */
+
+  /* ================= Dark Mode Text ================= */
+  --text-primary: #f9fafb;          /* Gray 50 */
+  --text-secondary: #d1d5db;        /* Gray 300 */
+  --text-muted: #9ca3af;            /* Gray 400 */
+
+  /* ================= Dark Mode Borders & Navigation ================= */
+  --border-color: #374151;          /* Gray 700 */
+  --sidebar-active: #2d1a0b;
+  --sidebar-active-text: #f39223;
+
+  /* ================= Dark Mode Status Tokens ================= */
+  --status-success-bg: #0f2318;
+  --status-success-border: #1f5136;
+  --status-success-text: #7ad39a;
+  --status-success-icon: #4ade80;
+  --status-success-icon-bg: #163322;
+
+  --status-warning-bg: #2a1d0f;
+  --status-warning-border: #5b3a16;
+  --status-warning-text: #f8b770;
+  --status-warning-icon: #f59e0b;
+  --status-warning-icon-bg: #3b2711;
+
+  --status-error-bg: #2f1414;
+  --status-error-border: #5f2323;
+  --status-error-text: #f7a8a8;
+  --status-error-icon: #f87171;
+  --status-error-icon-bg: #3b1919;
 }
 
 body {
   margin: 0;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Bi-directional (LTR & RTL) placeholder & input alignment */
+input[type='text'],
+input[type='search'],
+input[type='email'],
+input[type='tel'],
+input[type='password'],
+textarea {
+  text-align: start;
 }
 
 /* Custom Scrollbars */

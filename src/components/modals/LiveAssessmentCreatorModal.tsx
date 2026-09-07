@@ -3,18 +3,11 @@ import { useExam } from '../../context/ExamContext';
 import {
   Zap,
   Plus,
-  Clock,
-  BookOpen,
   Send,
   X,
-  CheckCircle2,
   Sparkles,
-  Layers,
-  FileText,
-  Play,
-  RotateCcw,
 } from 'lucide-react';
-import { LiveInClassAssessment, LiveAssessmentQuestion } from '../../types';
+import { LiveInClassAssessment } from '../../types';
 
 export const LiveAssessmentCreatorModal: React.FC = () => {
   const { showAssessmentCreatorModal } = useExam();
@@ -24,16 +17,12 @@ export const LiveAssessmentCreatorModal: React.FC = () => {
 
 const LiveAssessmentCreatorModalContent: React.FC = () => {
   const {
-    showAssessmentCreatorModal,
     setShowAssessmentCreatorModal,
     launchLiveAssessment,
     liveAssessments,
     activeLiveClass,
     setActiveTab,
-    addToast,
   } = useExam();
-
-
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(liveAssessments[0]?.id || '');
   const [customTitle, setCustomTitle] = useState<string>('Live Concept Check: Key Formulations');
@@ -59,38 +48,44 @@ const LiveAssessmentCreatorModalContent: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
-        {/* Top Header Bar */}
-        <div className="p-4 bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-xl shadow-md">
-              <Zap className="w-5 h-5 text-amber-300" />
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-xl rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl flex flex-col overflow-hidden text-[var(--text-primary)]">
+        {/* Modal Header */}
+        <div className="p-6 pb-4 border-b border-[var(--border-color)] flex items-start justify-between gap-3 shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-[var(--primary-light)] text-[var(--primary)] shrink-0 mt-0.5">
+              <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold tracking-tight text-white">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">
                 Dispatch Live In-Class Assessment
               </h2>
-              <p className="text-xs text-slate-300">
-                Send interactive MCQ & Match-the-Following spot quiz directly into classroom chat
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Send interactive spot quizzes directly into classroom session
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => setShowAssessmentCreatorModal(false)}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-main)] cursor-pointer"
+            aria-label="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="overflow-y-auto p-6 space-y-4 max-h-[70vh]">
           {/* Assessment Template Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-800">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium tracking-wide text-[var(--text-secondary)]">
                 Select Saved Assessment from Library
               </label>
               <button
@@ -99,10 +94,10 @@ const LiveAssessmentCreatorModalContent: React.FC = () => {
                   setShowAssessmentCreatorModal(false);
                   setActiveTab('create-class-assessment');
                 }}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-xs font-semibold text-[var(--primary)] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Create New In Builder</span>
+                <span>Create New in Builder</span>
               </button>
             </div>
 
@@ -116,7 +111,7 @@ const LiveAssessmentCreatorModalContent: React.FC = () => {
                   setDurationSec(found.durationSeconds || 180);
                 }
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
             >
               {liveAssessments.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -127,24 +122,24 @@ const LiveAssessmentCreatorModalContent: React.FC = () => {
           </div>
 
           {/* Assessment Title */}
-          <div>
-            <label className="block text-xs font-bold text-slate-800 mb-1.5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium tracking-wide text-[var(--text-secondary)]">
               Assessment Broadcast Title
             </label>
             <input
               type="text"
               value={customTitle}
               onChange={(e) => setCustomTitle(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
             />
           </div>
 
           {/* Quick Duration Limit Presets */}
-          <div>
-            <label className="block text-xs font-bold text-slate-800 mb-1.5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium tracking-wide text-[var(--text-secondary)]">
               Timer Duration Limit
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { sec: 60, label: '1 Minute', desc: 'Lightning poll' },
                 { sec: 120, label: '2 Minutes', desc: 'Quick check' },
@@ -155,60 +150,42 @@ const LiveAssessmentCreatorModalContent: React.FC = () => {
                   key={t.sec}
                   type="button"
                   onClick={() => setDurationSec(t.sec)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                     durationSec === t.sec
-                      ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-500/20 text-blue-900 font-bold'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      ? 'bg-[var(--primary-light)]/40 border-[var(--primary)] ring-2 ring-[var(--primary)]/20 text-[var(--text-primary)] font-bold'
+                      : 'bg-[var(--bg-main)] border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--border-color)]/50'
                   }`}
                 >
                   <p className="text-xs font-bold">{t.label}</p>
-                  <p className="text-[10px] text-slate-400">{t.desc}</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">{t.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Assessment Content Preview */}
-          <div className="space-y-3 pt-2 border-t border-slate-100">
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          <div className="space-y-2 pt-2 border-t border-[var(--border-color)]">
+            <span className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--primary)]" />
               Included Question Breakdown ({selectedTemplate?.questions.length || 0} Questions • {selectedTemplate?.totalMarks || 0} Marks)
             </span>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {selectedTemplate?.questions.map((q, idx) => (
                 <div
                   key={q.id}
-                  className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-start justify-between gap-3 text-xs"
+                  className="p-3 bg-[var(--bg-main)] rounded-xl border border-[var(--border-color)] flex items-start justify-between gap-3 text-xs"
                 >
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-400 font-bold">Q{idx + 1}</span>
-                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                        q.type === 'mcq'
-                          ? 'bg-blue-100 text-blue-800'
-                          : q.type === 'mmcq'
-                          ? 'bg-purple-100 text-purple-800'
-                          : q.type === 'match_following'
-                          ? 'bg-amber-100 text-amber-800'
-                          : q.type === 'step_ordering'
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-emerald-100 text-emerald-800'
-                      }`}>
-                        {q.type === 'mcq'
-                          ? 'MCQ Single Choice'
-                          : q.type === 'mmcq'
-                          ? 'MMCQ Multiple Choice'
-                          : q.type === 'match_following'
-                          ? 'Match the Following'
-                          : q.type === 'step_ordering'
-                          ? 'Sequence Ordering'
-                          : 'Fill in Blanks'}
+                      <span className="text-[var(--text-muted)] font-bold">Q{idx + 1}</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)]">
+                        {q.type.toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-slate-800 font-medium truncate">{q.prompt}</p>
+                    <p className="text-[var(--text-primary)] font-medium truncate">{q.prompt}</p>
                   </div>
-                  <span className="text-xs font-black text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200 shrink-0">
+                  <span className="text-xs font-bold text-[var(--text-primary)] bg-[var(--bg-card)] px-2 py-1 rounded-lg border border-[var(--border-color)] shrink-0">
                     {q.marks} Marks
                   </span>
                 </div>
@@ -217,21 +194,23 @@ const LiveAssessmentCreatorModalContent: React.FC = () => {
           </div>
         </div>
 
-        {/* Modal Bottom Action Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        {/* Modal Footer */}
+        <div className="p-6 pt-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 shrink-0">
           <button
+            type="button"
             onClick={() => setShowAssessmentCreatorModal(false)}
-            className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs"
+            className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-main)] transition cursor-pointer"
           >
             Cancel
           </button>
 
           <button
+            type="button"
             onClick={handleLaunch}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+            className="rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-5 py-2 text-sm font-semibold shadow-sm cursor-pointer flex items-center gap-2"
           >
             <Send className="w-4 h-4" />
-            <span>Broadcast Assessment Link Now</span>
+            <span>Broadcast Assessment Link</span>
           </button>
         </div>
       </div>

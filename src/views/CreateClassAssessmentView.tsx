@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PageWrapper } from '../components/layout/PageWrapper';
 import { QuestionPoolBrowser } from '../components/QuestionPoolBrowser';
 import { defaultAssessmentSection, sectionIdFor, orderQuestionsBySection } from '../utils/assessmentSections';
 import { bloomsTaxonomyLevels, bloomsTaxonomyColors } from '../utils/questionPool';
@@ -13,7 +14,6 @@ import {
   BlankSlotItem,
 } from '../types';
 import {
-  ArrowLeft,
   GripVertical,
   Plus,
   Trash2,
@@ -554,69 +554,73 @@ export const CreateClassAssessmentView: React.FC = () => {
     setActiveTab('live-classroom');
   };
 
+  const headerActions = (
+    <>
+      <button
+        type="button"
+        onClick={() => setShowPreviewModal(true)}
+        className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-main)] transition cursor-pointer flex items-center gap-2"
+      >
+        <Eye className="w-4 h-4 text-[var(--primary)]" />
+        <span>Student Preview</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleSaveToBank(true)}
+        className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-black/5 transition cursor-pointer border border-[var(--border-color)] bg-[var(--bg-card)]"
+      >
+        Save Draft
+      </button>
+    </>
+  );
+
   return (
-    <div className="px-4 sm:px-6 py-6 space-y-6 w-full">
-      {/* Top Navigation Bar & Action Buttons */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setActiveTab('online-class-assessments')}
-            className="p-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 shadow-xs transition-all"
-            title="Back to Assessments"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+    <PageWrapper
+      breadcrumbs={[
+        { label: 'Dashboard', onClick: () => setActiveTab('online-classes') },
+        { label: 'Class Assessments', onClick: () => setActiveTab('online-class-assessments') },
+        { label: editingLiveAssessment ? 'Edit Assessment' : 'New Assessment', active: true },
+      ]}
+      title={editingLiveAssessment ? 'Edit Class Assessment' : 'Create In-Class Assessment'}
+      subtitle="Design multi-format questions, structure exam sections, and broadcast to online lectures"
+      onBack={() => setActiveTab('online-class-assessments')}
+      actions={headerActions}
+    >
+      <div className="space-y-6 w-full">
+        <nav aria-label="Assessment creation steps" className="grid grid-cols-3 gap-2 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-2 shadow-xs">
+          {steps.map((label, index) => (
+            <button
+              key={label}
+              onClick={() => goToStep(index)}
+              aria-current={step === index ? 'step' : undefined}
+              className={`flex items-center gap-3 rounded-xl p-3 sm:p-4 text-left transition-colors cursor-pointer ${
+                step === index
+                  ? 'bg-[var(--primary-light)]/40 text-[var(--primary-hover)] font-semibold'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-main)]'
+              }`}
+            >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  step === index
+                    ? 'bg-[var(--primary)] text-white'
+                    : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-color)]'
+                }`}
+              >
+                {index + 1}
+              </span>
+              <span className="text-xs sm:text-sm font-semibold">{label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-blue-600">
-                Assessment workspace
-              </span>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800">
-                {editingLiveAssessment ? 'Editing Assessment' : 'New Assessment'}
-              </span>
-            </div>
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              {editingLiveAssessment ? 'Edit Class Assessment' : 'Create In-Class Assessment'}
-            </h2>
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">Step {step + 1} of 3</p>
+            <h3 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)]">{['Start with the essentials', 'Make every question count', 'A final look before you share'][step]}</h3>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">{['Give your assessment a name and choose who it is for.', 'Group questions into sections. Drag to move them, or use the Move to section menu.', 'Set the delivery rules, preview the experience, and choose how to share.'][step]}</p>
           </div>
+          <span className="rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)]">{sections.length} {sections.length === 1 ? 'section' : 'sections'} · {questions.length} questions · {totalCalculatedMarks} marks</span>
         </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={() => setShowPreviewModal(true)}
-            className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-xs flex items-center gap-2 transition-all"
-          >
-            <Eye className="w-4 h-4 text-slate-600" />
-            <span>Student Preview</span>
-          </button>
-
-          <button
-            onClick={() => handleSaveToBank(true)}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 flex items-center gap-2 transition-all"
-          >
-            <span>Save Draft</span>
-          </button>
-
-        </div>
-      </div>
-
-      <nav aria-label="Assessment creation steps" className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-xs">
-        {steps.map((label, index) => (
-          <button key={label} onClick={() => goToStep(index)} aria-current={step === index ? 'step' : undefined}
-            className={`flex items-center gap-3 rounded-xl p-3 sm:p-4 text-left transition-colors ${step === index ? 'bg-blue-50 text-blue-800' : 'text-slate-500 hover:bg-slate-50'}`}>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${step === index ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{index + 1}</span>
-            <span className="text-xs sm:text-sm font-semibold">{label}</span>
-          </button>
-        ))}
-      </nav>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold tracking-widest uppercase text-blue-600">Step {step + 1} of 3</p>
-          <h3 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{['Start with the essentials', 'Make every question count', 'A final look before you share'][step]}</h3>
-          <p className="mt-1 text-sm text-slate-500">{['Give your assessment a name and choose who it is for.', 'Group questions into sections. Drag to move them, or use the Move to section menu.', 'Set the delivery rules, preview the experience, and choose how to share.'][step]}</p>
-        </div>
-        <span className="rounded-full bg-white border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600">{sections.length} {sections.length === 1 ? 'section' : 'sections'} · {questions.length} questions · {totalCalculatedMarks} marks</span>
-      </div>
 
       {step === 0 && <>
       {/* Assessment Header Configuration Card */}
@@ -1731,10 +1735,10 @@ export const CreateClassAssessmentView: React.FC = () => {
               ))}
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end">
+            <div className="p-4 bg-[var(--bg-main)] border-t border-[var(--border-color)] flex items-center justify-end">
               <button
                 onClick={() => setShowPreviewModal(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs"
+                className="rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 text-sm font-semibold shadow-sm cursor-pointer"
               >
                 Close Preview
               </button>
@@ -1742,6 +1746,7 @@ export const CreateClassAssessmentView: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PageWrapper>
   );
 };

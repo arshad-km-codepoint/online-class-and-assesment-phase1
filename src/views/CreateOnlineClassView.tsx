@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useExam } from '../context/ExamContext';
+import { PageWrapper } from '../components/layout/PageWrapper';
 import {
   Video,
   Calendar,
@@ -235,105 +236,96 @@ export const CreateOnlineClassView: React.FC = () => {
     }
   };
 
+  const headerActions = (
+    <>
+      <button
+        type="button"
+        onClick={() => setActiveTab('online-classes')}
+        className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-black/5 transition cursor-pointer flex items-center gap-1.5"
+      >
+        <RotateCcw className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={() => handleCreateClass(false)}
+        className="inline-flex items-center gap-2 rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm focus:outline-none focus:ring-4 focus:ring-orange-200 cursor-pointer"
+      >
+        <CheckCircle2 className="w-4 h-4" />
+        Schedule Class
+      </button>
+      <button
+        type="button"
+        onClick={() => handleCreateClass(true)}
+        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm cursor-pointer"
+      >
+        <Play className="w-4 h-4" />
+        Start Instantly
+      </button>
+    </>
+  );
+
   return (
-    <div className="px-4 sm:px-6 py-6 space-y-6 w-full">
-      {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 mb-1">
-            <button
-              onClick={() => setActiveTab('online-classes')}
-              className="hover:underline flex items-center gap-1"
-            >
-              <Video className="w-3.5 h-3.5" />
-              Online Classes
-            </button>
-            <span className="text-slate-400">/</span>
-            <span className="text-slate-700">New Class Creation Studio</span>
-          </div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
-              <Plus className="w-5 h-5" />
-            </div>
-            Create & Schedule Online Class
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Set up virtual classrooms with integrated WebRTC / Meet / Zoom streaming, live attendance, and materials
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setActiveTab('online-classes')}
-            className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-            Cancel
-          </button>
-          <button
-            onClick={() => handleCreateClass(false)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Schedule Class
-          </button>
-          <button
-            onClick={() => handleCreateClass(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2"
-          >
-            <Play className="w-4 h-4" />
-            Start Instantly
-          </button>
-        </div>
-      </div>
-
-      {/* Step Progress Stepper Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {steps.map((step) => {
-            const isCurrent = activeStep === step.number;
-            const isDone = activeStep > step.number;
-            return (
-              <button
-                key={step.number}
-                onClick={() => setActiveStep(step.number)}
-                className={`text-left p-3 rounded-xl border transition-all relative ${
-                  isCurrent
-                    ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
-                    : isDone
-                    ? 'bg-slate-50/80 border-slate-200 hover:bg-slate-100'
-                    : 'bg-white border-slate-200/60 opacity-60 hover:opacity-100'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      isDone
-                        ? 'bg-emerald-500 text-white'
-                        : isCurrent
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    {isDone ? <Check className="w-3.5 h-3.5" /> : step.number}
-                  </div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                    Step {step.number}
-                  </span>
-                </div>
-                <p
-                  className={`text-xs font-bold leading-tight truncate ${
-                    isCurrent ? 'text-blue-950' : 'text-slate-800'
+    <PageWrapper
+      breadcrumbs={[
+        { label: 'Dashboard', onClick: () => setActiveTab('online-classes') },
+        { label: 'Online Classes', onClick: () => setActiveTab('online-classes') },
+        { label: 'New Class Creation Studio', active: true },
+      ]}
+      title="Create & Schedule Online Class"
+      subtitle="Set up virtual classrooms with integrated WebRTC / Meet / Zoom streaming, live attendance, and materials"
+      onBack={() => setActiveTab('online-classes')}
+      actions={headerActions}
+    >
+      <div className="space-y-6 w-full">
+        {/* Step Progress Stepper Bar */}
+        <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] p-4 shadow-sm">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {steps.map((step) => {
+              const isCurrent = activeStep === step.number;
+              const isDone = activeStep > step.number;
+              return (
+                <button
+                  type="button"
+                  key={step.number}
+                  onClick={() => setActiveStep(step.number)}
+                  className={`text-left p-3 rounded-xl border transition-all relative cursor-pointer ${
+                    isCurrent
+                      ? 'bg-[var(--primary-light)]/40 border-[var(--primary)] ring-2 ring-[var(--primary)]/20 shadow-xs'
+                      : isDone
+                      ? 'bg-[var(--bg-main)] border-[var(--border-color)] hover:bg-[var(--primary-light)]/20'
+                      : 'bg-[var(--bg-card)] border-[var(--border-color)]/60 opacity-60 hover:opacity-100'
                   }`}
                 >
-                  {step.title}
-                </p>
-                <p className="text-[10px] text-slate-400 truncate mt-0.5">{step.desc}</p>
-              </button>
-            );
-          })}
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        isDone
+                          ? 'bg-emerald-500 text-white'
+                          : isCurrent
+                          ? 'bg-[var(--primary)] text-white shadow-xs'
+                          : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-color)]'
+                      }`}
+                    >
+                      {isDone ? <Check className="w-3.5 h-3.5" /> : step.number}
+                    </div>
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
+                      Step {step.number}
+                    </span>
+                  </div>
+                  <p
+                    className={`text-xs font-bold leading-tight truncate ${
+                      isCurrent ? 'text-[var(--primary-hover)]' : 'text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {step.title}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">{step.desc}</p>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
       {/* Main Grid: Form Steps + Live Card Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1211,6 +1203,7 @@ export const CreateOnlineClassView: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PageWrapper>
   );
 };

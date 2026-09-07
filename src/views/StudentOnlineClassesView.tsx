@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
 import { useExam } from '../context/ExamContext';
+import { PageWrapper } from '../components/layout/PageWrapper';
 import {
   Video,
   Play,
   Calendar,
   Clock,
-  BookOpen,
   FileText,
   Radio,
   CheckCircle2,
-  Users,
   Eye,
-  GraduationCap,
-  Sparkles,
   Search,
-  Filter,
   Download,
-  Lock,
 } from 'lucide-react';
 
 export const StudentOnlineClassesView: React.FC = () => {
@@ -44,210 +39,205 @@ export const StudentOnlineClassesView: React.FC = () => {
     return matchesTab && matchesSearch;
   });
 
+  const headerActions = liveClasses.length > 0 ? (
+    <button
+      type="button"
+      onClick={() => startLiveClass(liveClasses[0].id)}
+      className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm cursor-pointer animate-pulse"
+    >
+      <Radio className="w-4 h-4 text-white" />
+      <span>Join Active Live Lecture</span>
+    </button>
+  ) : undefined;
+
   return (
-    <div className="px-4 sm:px-6 py-6 space-y-6 w-full">
-      {/* Header Banner */}
-      <div className="bg-linear-to-r from-emerald-900 via-emerald-800 to-slate-900 rounded-3xl p-6 text-white shadow-lg space-y-3 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                Student Live Classroom Portal
-              </span>
-              <span className="text-xs font-semibold text-emerald-200">
-                Student: {selectedChild.name} ({selectedChild.class} - {selectedChild.section})
-              </span>
-            </div>
-            <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              <Video className="w-6 h-6 text-emerald-400" />
-              Live Classes & Lecture Archive
-            </h2>
-            <p className="text-xs text-emerald-100/80 max-w-xl mt-1">
-              Attend real-time streaming lectures, interact with subject teachers, download class notes & watch past recordings.
-            </p>
+    <PageWrapper
+      breadcrumbs={[
+        { label: 'Dashboard' },
+        { label: 'Online Classes', active: true },
+      ]}
+      title="Live Classes & Lecture Archive"
+      subtitle={`Student: ${selectedChild.name} (${selectedChild.class} - ${selectedChild.section}) · Attend real-time lectures, access materials & review recordings`}
+      actions={headerActions}
+    >
+      <div className="space-y-6 w-full">
+        {/* Filter Toolbar (Section 5.E Blueprint) */}
+        <div className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm p-4 sm:px-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 bg-[var(--bg-main)] p-1 rounded-xl text-xs font-bold overflow-x-auto border border-[var(--border-color)]">
+            {[
+              { id: 'all', label: `All Sessions (${onlineClasses.length})` },
+              { id: 'live', label: `Live Now (${liveClasses.length})` },
+              { id: 'upcoming', label: `Upcoming Schedule (${upcomingClasses.length})` },
+              { id: 'recordings', label: `Past Recordings (${recordedClasses.length})` },
+            ].map((tab) => (
+              <button
+                type="button"
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id as any)}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  activeFilter === tab.id
+                    ? 'bg-[var(--bg-card)] text-[var(--primary)] font-bold shadow-xs border border-[var(--border-color)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {liveClasses.length > 0 && (
-            <button
-              onClick={() => startLiveClass(liveClasses[0].id)}
-              className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-red-600/40 flex items-center gap-2 animate-bounce"
-            >
-              <Radio className="w-4 h-4 text-white animate-pulse" />
-              <span>Join Active Live Lecture</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filter Tabs & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-          {[
-            { id: 'all', label: `All Sessions (${onlineClasses.length})` },
-            { id: 'live', label: `Live Now (${liveClasses.length})`, color: 'text-red-600' },
-            { id: 'upcoming', label: `Upcoming Schedule (${upcomingClasses.length})` },
-            { id: 'recordings', label: `Past Recordings (${recordedClasses.length})` },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveFilter(tab.id as any)}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                activeFilter === tab.id
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              } ${tab.color || ''}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <div className="relative max-w-xs w-full">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
+              <Search className="w-4 h-4" />
+            </span>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search class or subject..."
+              className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] py-2 pl-9 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            />
+          </div>
         </div>
 
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search class or subject..."
-            className="pl-9 pr-3.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder:text-slate-400"
-          />
-        </div>
-      </div>
+        {/* Classes Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((cls) => {
+            const isLive = cls.status === 'live';
+            const isCompleted = cls.status === 'completed';
 
-      {/* Classes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map((cls) => {
-          const isLive = cls.status === 'live';
-          const isCompleted = cls.status === 'completed';
+            return (
+              <div
+                key={cls.id}
+                className={`bg-[var(--bg-card)] rounded-2xl border transition-all duration-200 hover:shadow-md hover:translate-y-[-2px] flex flex-col justify-between overflow-hidden shadow-sm ${
+                  isLive
+                    ? 'border-[var(--status-error-border)] ring-2 ring-[var(--status-error-icon)]/20'
+                    : 'border-[var(--border-color)]'
+                }`}
+              >
+                <div className="p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[var(--primary-light)] text-[var(--primary-hover)] border border-[var(--primary)] uppercase tracking-wider">
+                      {cls.subject}
+                    </span>
 
-          return (
-            <div
-              key={cls.id}
-              className={`bg-white rounded-2xl border transition-all duration-200 hover:shadow-md flex flex-col justify-between overflow-hidden ${
-                isLive
-                  ? 'border-red-300 ring-2 ring-red-500/20 shadow-red-500/5'
-                  : 'border-slate-200'
-              }`}
-            >
-              <div className="p-5 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-md bg-emerald-700 text-white uppercase tracking-wider">
-                    {cls.subject}
-                  </span>
+                    {/* Status Badges from Section 5.D */}
+                    {isLive ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca] animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-error-icon)]" />
+                        LIVE NOW
+                      </span>
+                    ) : isCompleted ? (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700">
+                        <CheckCircle2 className="w-3 h-3 text-[var(--text-muted)]" />
+                        Recorded
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-[#ecfdf3] text-[#166534] border border-[#bbf7d0]">
+                        <Calendar className="w-3 h-3 text-[#15803d]" />
+                        Upcoming
+                      </span>
+                    )}
+                  </div>
 
-                  {isLive ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 text-[10px] font-extrabold uppercase animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                      LIVE NOW
-                    </span>
-                  ) : isCompleted ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
-                      <CheckCircle2 className="w-3 h-3 text-slate-400" />
-                      Recorded
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                      <Calendar className="w-3 h-3 text-emerald-600" />
-                      Upcoming
-                    </span>
+                  <div>
+                    <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug line-clamp-2">
+                      {cls.title}
+                    </h3>
+                    <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mt-1 leading-relaxed">
+                      {cls.description}
+                    </p>
+                  </div>
+
+                  {/* Timing & Platform Box */}
+                  <div className="p-3 bg-[var(--bg-main)] rounded-xl border border-[var(--border-color)] space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between text-[var(--text-secondary)] font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[var(--primary)]" />
+                        {cls.date}
+                      </span>
+                      <span className="flex items-center gap-1.5 font-bold text-[var(--text-primary)]">
+                        <Clock className="w-3.5 h-3.5 text-[var(--primary)]" />
+                        {cls.startTime} ({cls.durationMinutes}m)
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border-color)] text-[11px] text-[var(--text-secondary)]">
+                      <span>Teacher: {cls.instructorName}</span>
+                      <span className="font-bold text-[var(--primary-hover)]">Passcode: {cls.passcode || 'STUDENT'}</span>
+                    </div>
+                  </div>
+
+                  {/* Materials List */}
+                  {cls.materials.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        Study Materials ({cls.materials.length})
+                      </span>
+                      {cls.materials.map((m) => (
+                        <div
+                          key={m.id}
+                          onClick={() => addToast('Downloading File', `Saved ${m.title}`, 'success')}
+                          className="p-2 bg-[var(--bg-main)] hover:bg-[var(--primary-light)]/40 rounded-xl border border-[var(--border-color)] text-xs font-semibold text-[var(--text-primary)] flex items-center justify-between cursor-pointer transition-all"
+                        >
+                          <span className="truncate flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-[var(--primary)]" />
+                            {m.title}
+                          </span>
+                          <Download className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
-                    {cls.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                    {cls.description}
-                  </p>
-                </div>
-
-                {/* Timing & Platform Box */}
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between text-slate-700 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                      {cls.date}
-                    </span>
-                    <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                      <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                      {cls.startTime} ({cls.durationMinutes}m)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-500">
-                    <span>Teacher: {cls.instructorName}</span>
-                    <span className="font-bold text-emerald-700">Passcode: {cls.passcode || 'STUDENT'}</span>
-                  </div>
-                </div>
-
-                {/* Materials List */}
-                {cls.materials.length > 0 && (
-                  <div className="space-y-1 pt-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Study Materials ({cls.materials.length})
-                    </span>
-                    {cls.materials.map((m) => (
-                      <div
-                        key={m.id}
-                        onClick={() => addToast('Downloading File', `Saved ${m.title}`, 'success')}
-                        className="p-2 bg-slate-50 hover:bg-emerald-50 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:text-emerald-900 flex items-center justify-between cursor-pointer transition-all"
-                      >
-                        <span className="truncate flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5 text-blue-600" />
-                          {m.title}
-                        </span>
-                        <Download className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom Action Footer */}
-              <div className="p-3.5 bg-slate-50 border-t border-slate-200">
-                {isLive ? (
-                  <button
-                    onClick={() => startLiveClass(cls.id)}
-                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-red-600/30 animate-pulse transition-all"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    Join Live Classroom Now
-                  </button>
-                ) : isCompleted ? (
-                  <button
-                    onClick={() => {
-                      if (cls.recordingUrl) {
-                        window.open(cls.recordingUrl, '_blank');
-                      } else {
-                        addToast('Playback Ready', 'Simulating lecture archive stream', 'info');
+                {/* Bottom Action Footer */}
+                <div className="p-3.5 bg-[var(--bg-main)] border-t border-[var(--border-color)]">
+                  {isLive ? (
+                    <button
+                      type="button"
+                      onClick={() => startLiveClass(cls.id)}
+                      className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm animate-pulse transition-all cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      Join Live Classroom Now
+                    </button>
+                  ) : isCompleted ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cls.recordingUrl) {
+                          window.open(cls.recordingUrl, '_blank');
+                        } else {
+                          addToast('Playback Ready', 'Simulating lecture archive stream', 'info');
+                        }
+                      }}
+                      className="w-full py-2 bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-primary)] rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[var(--primary)]" />
+                      Watch Lecture Recording
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        addToast(
+                          'Class Scheduled',
+                          `This lecture begins on ${cls.date} at ${cls.startTime}. A reminder will be sent 15 mins prior.`,
+                          'info'
+                        )
                       }
-                    }}
-                    className="w-full py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-purple-600" />
-                    Watch Lecture Recording
-                  </button>
-                ) : (
-                  <button
-                    onClick={() =>
-                      addToast(
-                        'Class Scheduled',
-                        `This lecture begins on ${cls.date} at ${cls.startTime}. A reminder will be sent 15 mins prior.`,
-                        'info'
-                      )
-                    }
-                    className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-slate-500" />
-                    Starts {cls.date} @ {cls.startTime}
-                  </button>
-                )}
+                      className="w-full py-2 bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-secondary)] rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                      Starts {cls.date} @ {cls.startTime}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 };
