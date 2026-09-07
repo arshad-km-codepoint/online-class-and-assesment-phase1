@@ -88,14 +88,14 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden text-slate-900">
         {/* Top Header Bar */}
-        <div className="p-4 bg-linear-to-r from-slate-900 via-indigo-950 to-blue-950 text-white flex items-center justify-between shrink-0">
+        <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-xl shadow-md">
-              <Award className="w-5 h-5 text-amber-300" />
+            <div className="p-2 bg-[#f39223] rounded-xl shadow-md">
+              <Award className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#f39223]/20 text-[#f39223] border border-[#f39223]/30">
                   Teacher Live Assessment Studio
                 </span>
                 <span className="text-xs font-semibold text-slate-300">
@@ -143,7 +143,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
               </span>
               <p className="text-xl font-black text-slate-900">{totalSubmissions} / 6 Students</p>
             </div>
-            <Users className="w-5 h-5 text-blue-600" />
+            <Users className="w-5 h-5 text-slate-500" />
           </div>
 
           <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
@@ -163,9 +163,9 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Q1 MCQ Accuracy
               </span>
-              <p className="text-xl font-black text-blue-600">{mcqAccuracyPct}% Correct</p>
+              <p className="text-xl font-black text-[#f39223]">{mcqAccuracyPct}% Correct</p>
             </div>
-            <CheckCircle2 className="w-5 h-5 text-blue-600" />
+            <CheckCircle2 className="w-5 h-5 text-[#f39223]" />
           </div>
 
           <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
@@ -205,7 +205,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                     }}
                     className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between ${
                       isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                        ? 'bg-[#f39223] text-white border-[#f39223] shadow-sm'
                         : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-100'
                     }`}
                   >
@@ -217,7 +217,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                       />
                       <div className="min-w-0">
                         <p className="text-xs font-bold truncate">{sub.studentName}</p>
-                        <p className={`text-[10px] truncate ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                        <p className={`text-[10px] truncate ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>
                           Roll: {sub.rollNo} • {sub.submittedAt}
                         </p>
                       </div>
@@ -251,7 +251,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                   <img
                     src={selectedSub.avatar}
                     alt={selectedSub.studentName}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-500 shadow-xs"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-[#f39223] shadow-xs"
                   />
                   <div>
                     <h3 className="text-sm font-black text-slate-900">{selectedSub.studentName}</h3>
@@ -266,7 +266,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Awarded Score
                     </span>
-                    <p className="text-2xl font-black text-blue-600">
+                    <p className="text-2xl font-black text-[#f39223]">
                       {selectedSub.totalScore} / {selectedSub.maxMarks}
                     </p>
                   </div>
@@ -465,17 +465,17 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
               )}
 
               {/* Teacher Assessment Feedback & Mark Finalization Bar */}
-              <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 space-y-3">
-                <div className="flex items-center justify-between text-xs font-bold text-blue-950">
+              <div className="p-4 bg-[#fff4e6] rounded-2xl border border-[#fcd8b3] space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-[#c26d15]">
                   <span className="flex items-center gap-1.5">
-                    <Edit3 className="w-4 h-4 text-blue-600" />
+                    <Edit3 className="w-4 h-4 text-[#f39223]" />
                     Teacher Custom Feedback & Score Override
                   </span>
                   <button
                     onClick={() => {
                       addToast('Marks Pushed', `Synchronized ${selectedSub.studentName}'s score to Gradebook!`, 'success');
                     }}
-                    className="text-[11px] font-semibold text-blue-700 hover:underline"
+                    className="text-[11px] font-semibold text-[#f39223] hover:underline"
                   >
                     Sync to Gradebook
                   </button>
@@ -487,7 +487,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                     value={feedbackInput}
                     onChange={(e) => setFeedbackInput(e.target.value)}
                     placeholder="Enter personalized feedback for student (e.g. Excellent grasp of Chain Rule)..."
-                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
                   />
 
                   <div className="flex items-center gap-2">
@@ -498,12 +498,12 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: NonNullabl
                       min={0}
                       value={customScoreOverride !== null ? customScoreOverride : selectedSub.totalScore}
                       onChange={(e) => setCustomScoreOverride(parseFloat(e.target.value) || 0)}
-                      className="w-20 px-2 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black text-blue-900 text-center"
+                      className="w-20 px-2 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black text-[#c26d15] text-center"
                       title="Adjust Score"
                     />
                     <button
                       onClick={handleSaveTeacherGrade}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 whitespace-nowrap"
+                      className="px-4 py-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-md transition-all duration-200 whitespace-nowrap"
                     >
                       Save Evaluation
                     </button>

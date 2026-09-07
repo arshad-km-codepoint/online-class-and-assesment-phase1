@@ -39,11 +39,11 @@ const PAIR_COLORS = [
     border: 'border-purple-300',
   },
   {
-    badgeBg: 'bg-blue-100 text-blue-800 border-blue-300',
-    cardBg: 'bg-blue-50/80 border-blue-300 ring-1 ring-blue-400/50',
-    accentText: 'text-blue-700',
-    dotBg: 'bg-blue-500',
-    border: 'border-blue-300',
+    badgeBg: 'bg-[#fff4e6] text-[#c26d15] border-[#fcd8b3]',
+    cardBg: 'bg-[#fff4e6]/80 border-[#fcd8b3] ring-1 ring-[#f39223]/30',
+    accentText: 'text-[#c26d15]',
+    dotBg: 'bg-[#f39223]',
+    border: 'border-[#fcd8b3]',
   },
   {
     badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
@@ -498,17 +498,17 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
         {/* Modal Top Header Bar */}
-        <div className="p-4 bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-xl shadow-md">
+            <div className="p-2 bg-[#f39223] rounded-xl shadow-md">
               <Zap className="w-5 h-5 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#f39223]/20 text-[#f39223] border border-[#f39223]/30">
                   Live Class Assessment
                 </span>
-                <span className="text-xs font-semibold text-blue-200">{activeLiveAssessment.subject}</span>
+                <span className="text-xs font-semibold text-slate-300">{activeLiveAssessment.subject}</span>
               </div>
               <h2 className="text-base font-extrabold tracking-tight text-white">{activeLiveAssessment.title}</h2>
             </div>
@@ -555,7 +555,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
               </div>
 
               {/* Score Display Card */}
-              <div className="p-5 bg-linear-to-r from-emerald-50 via-teal-50 to-blue-50 rounded-2xl border border-emerald-200/80 max-w-md mx-auto space-y-2">
+              <div className="p-5 bg-linear-to-r from-emerald-50 via-teal-50 to-amber-50 rounded-2xl border border-emerald-200/80 max-w-md mx-auto space-y-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
                   Instant Auto-Scored Results
                 </span>
@@ -703,7 +703,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
               <div className="pt-4 flex justify-center">
                 <button
                   onClick={() => setShowStudentAssessmentModal(false)}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
+                  className="px-6 py-2.5 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   Return to Live Classroom Stream
                 </button>
@@ -716,7 +716,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
               {mcqQuestion && (
                 <div className="space-y-3 p-5 bg-slate-50/70 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold uppercase text-blue-600 tracking-wider">
+                    <span className="text-xs font-extrabold uppercase text-[#f39223] tracking-wider">
                       Question 1 • Single Choice ({mcqQuestion.marks} Marks)
                     </span>
                     <span className="text-[11px] font-bold text-slate-400">Calculus Chain Rule</span>
@@ -734,14 +734,14 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                           onClick={() => setSelectedMcqOption(idx)}
                           className={`p-3.5 rounded-xl border text-left font-semibold text-xs transition-all flex items-center justify-between ${
                             isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
-                              : 'bg-white text-slate-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50/40'
+                              ? 'bg-[#f39223] text-white border-[#f39223] shadow-sm'
+                              : 'bg-white text-slate-800 border-slate-200 hover:border-[#f39223] hover:bg-[#fff4e6]/40'
                           }`}
                         >
                           <span>{opt}</span>
                           <div
                             className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                              isSelected ? 'border-white bg-white text-blue-600' : 'border-slate-300'
+                              isSelected ? 'border-white bg-white text-[#f39223]' : 'border-slate-300'
                             }`}
                           >
                             {isSelected && <Check className="w-3 h-3 stroke-3" />}
@@ -984,7 +984,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#f39223]"></span>
                         Available Answer Options (Drag from below into blank slots above)
                       </p>
                       <span className="text-[10px] text-slate-500 font-semibold">
@@ -1017,21 +1017,21 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                               isPlaced
                                 ? 'bg-slate-50/70 border-slate-200 text-slate-400 opacity-60 hover:opacity-100 hover:border-red-300'
                                 : isSelectedAnswer
-                                ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-400 shadow-md scale-102'
-                                : 'bg-white border-slate-300 text-slate-900 hover:border-blue-500 hover:shadow-md hover:-translate-y-0.5'
+                                ? 'bg-[#f39223] text-white border-[#f39223] ring-2 ring-[#fcd8b3] shadow-md scale-102'
+                                : 'bg-white border-slate-300 text-slate-900 hover:border-[#f39223] hover:shadow-md hover:-translate-y-0.5'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1">
                               <div className="flex items-center gap-1.5">
                                 <GripVertical
                                   className={`w-3.5 h-3.5 ${
-                                    isSelectedAnswer ? 'text-blue-200' : 'text-slate-400'
+                                    isSelectedAnswer ? 'text-amber-100' : 'text-slate-400'
                                   }`}
                                 />
                                 <span
                                   className={`w-4 h-4 rounded text-[10px] font-black flex items-center justify-center ${
                                     isSelectedAnswer
-                                      ? 'bg-white text-blue-700'
+                                      ? 'bg-white text-[#c26d15]'
                                       : 'bg-slate-200 text-slate-700'
                                   }`}
                                 >
@@ -1044,7 +1044,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                                   ✓ In Slot {matchedLeftLetter}
                                 </span>
                               ) : isSelectedAnswer ? (
-                                <span className="text-[9px] font-bold bg-blue-700 text-white px-1.5 py-0.5 rounded">
+                                <span className="text-[9px] font-bold bg-[#c26d15] text-white px-1.5 py-0.5 rounded">
                                   Selected
                                 </span>
                               ) : (
@@ -1444,7 +1444,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                     value={shortAnswerText}
                     onChange={(e) => setShortAnswerText(e.target.value)}
                     placeholder="Type your concise geometric explanation here (e.g. slope of tangent line to the curve at point a)..."
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-[#f39223] focus:outline-none placeholder:text-slate-400"
                   />
                 </div>
               )}
@@ -1456,7 +1456,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
         {!hasSubmitted && (
           <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Sparkles className="w-4 h-4 text-blue-600" />
+              <Sparkles className="w-4 h-4 text-[#f39223]" />
               <span>Answers are encrypted & auto-graded upon submission</span>
             </div>
 

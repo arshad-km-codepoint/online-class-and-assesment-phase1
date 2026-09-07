@@ -115,7 +115,7 @@ export const CreateOnlineClassView: React.FC = () => {
       name: 'EduStream HD (Recommended)',
       desc: 'Built-in interactive classroom with live proctoring, whiteboard & auto-attendance',
       badge: 'Zero Setup • Native HD',
-      iconBg: 'bg-blue-600',
+      iconBg: 'bg-[#f39223]',
     },
     {
       id: 'google_meet',
@@ -337,10 +337,10 @@ export const CreateOnlineClassView: React.FC = () => {
               <div className="border-b border-slate-100 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                    <BookOpen className="w-4 h-4 text-blue-600" />
+                    <BookOpen className="w-4 h-4 text-[#f39223]" />
                     Step 1: Basic Class Information & Academic Mapping
                   </div>
-                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                  <span className="text-[11px] font-semibold text-[#c26d15] bg-[#fff4e6] px-2.5 py-0.5 rounded-full border border-[#fcd8b3]">
                     Curriculum Sync
                   </span>
                 </div>
@@ -360,7 +360,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g. Advanced Calculus: Limits, Derivatives & Real-world Optimization"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all placeholder:text-slate-400"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none transition-all placeholder:text-slate-400"
                   />
                 </div>
 
@@ -373,7 +373,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     <select
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     >
                       {subjects.map((sub) => (
                         <option key={sub} value={sub}>
@@ -390,7 +390,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     <select
                       value={formData.class}
                       onChange={(e) => setFormData({ ...formData, class: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     >
                       {classes.map((cls) => (
                         <option key={cls} value={cls}>
@@ -407,7 +407,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     <select
                       value={formData.section}
                       onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     >
                       {sections.map((sec) => (
                         <option key={sec} value={sec}>
@@ -428,7 +428,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       type="text"
                       value={formData.instructorName}
                       onChange={(e) => setFormData({ ...formData, instructorName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                   </div>
 
@@ -440,7 +440,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       type="text"
                       value={formData.instructorTitle}
                       onChange={(e) => setFormData({ ...formData, instructorTitle: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -455,7 +455,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Briefly describe what students will learn, prerequisites, and required study material..."
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                   />
                 </div>
 
@@ -476,7 +476,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         }
                       }}
                       placeholder="Add subtopic (e.g. Chain Rule, L'Hôpital's Rule) & press Enter"
-                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                     <button
                       type="button"
@@ -492,13 +492,13 @@ export const CreateOnlineClassView: React.FC = () => {
                     {formData.topics.map((top, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3] text-xs font-semibold"
                       >
                         <span>{top}</span>
                         <button
                           type="button"
                           onClick={() => removeTopic(idx)}
-                          className="text-blue-400 hover:text-red-600 transition-colors"
+                          className="text-[#f39223] hover:text-red-600 transition-colors"
                         >
                           ×
                         </button>
@@ -516,7 +516,7 @@ export const CreateOnlineClassView: React.FC = () => {
               <div className="border-b border-slate-100 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <Calendar className="w-4 h-4 text-[#f39223]" />
                     Step 2: Date, Timing & Timetable Recurrence
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -539,7 +539,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                   </div>
 
@@ -550,7 +550,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     <select
                       value={formData.timeZone}
                       onChange={(e) => setFormData({ ...formData, timeZone: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     >
                       <option value="IST (UTC+05:30)">IST (UTC+05:30) - India Standard Time</option>
                       <option value="UTC (UTC+00:00)">UTC (UTC+00:00) - Universal Time</option>
@@ -572,7 +572,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       value={formData.startTime}
                       onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                       placeholder="e.g. 10:00 AM"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                   </div>
 
@@ -585,7 +585,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       value={formData.endTime}
                       onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                       placeholder="e.g. 11:15 AM"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                   </div>
 
@@ -599,7 +599,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, durationMinutes: parseInt(e.target.value) || 60 })
                       }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -617,7 +617,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         onClick={() => setFormData({ ...formData, durationMinutes: mins })}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                           formData.durationMinutes === mins
-                            ? 'bg-blue-600 text-white shadow-xs'
+                            ? 'bg-[#f39223] text-white shadow-xs'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                         }`}
                       >
@@ -648,7 +648,7 @@ export const CreateOnlineClassView: React.FC = () => {
                           }
                           className={`p-2.5 rounded-xl border text-left transition-all ${
                             formData.recurrence === item.id
-                              ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500 text-blue-900 font-bold'
+                              ? 'bg-[#fff4e6] border-[#f39223] ring-1 ring-[#fcd8b3] text-[#c26d15] font-bold'
                               : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                           }`}
                         >
@@ -669,7 +669,7 @@ export const CreateOnlineClassView: React.FC = () => {
               <div className="border-b border-slate-100 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                    <Tv className="w-4 h-4 text-blue-600" />
+                    <Tv className="w-4 h-4 text-[#f39223]" />
                     Step 3: Streaming Platform & Video Room Setup
                   </div>
                   <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
@@ -692,7 +692,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         onClick={() => setFormData({ ...formData, platform: plat.id })}
                         className={`p-4 rounded-xl border cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20 shadow-xs'
+                            ? 'bg-[#fff4e6] border-[#f39223] ring-2 ring-[#f39223]/20 shadow-xs'
                             : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/70'
                         }`}
                       >
@@ -705,7 +705,7 @@ export const CreateOnlineClassView: React.FC = () => {
                             </div>
                             <div>
                               <h4 className="text-xs font-bold text-slate-900">{plat.name}</h4>
-                              <span className="text-[10px] font-semibold text-blue-600">
+                              <span className="text-[10px] font-semibold text-[#f39223]">
                                 {plat.badge}
                               </span>
                             </div>
@@ -713,7 +713,7 @@ export const CreateOnlineClassView: React.FC = () => {
                           <div
                             className={`w-4 h-4 rounded-full border flex items-center justify-center ${
                               isSelected
-                                ? 'border-blue-600 bg-blue-600 text-white'
+                                ? 'border-[#f39223] bg-[#f39223] text-white'
                                 : 'border-slate-300 bg-white'
                             }`}
                           >
@@ -730,7 +730,7 @@ export const CreateOnlineClassView: React.FC = () => {
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                     <span className="flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-blue-600" />
+                      <Lock className="w-3.5 h-3.5 text-[#f39223]" />
                       Session Access Credentials
                     </span>
                     <button
@@ -741,7 +741,7 @@ export const CreateOnlineClassView: React.FC = () => {
                           passcode: 'EDU' + Math.floor(1000 + Math.random() * 9000),
                         })
                       }
-                      className="text-[11px] font-semibold text-blue-600 hover:underline"
+                      className="text-[11px] font-semibold text-[#f39223] hover:underline"
                     >
                       Regenerate Passcode
                     </button>
@@ -801,7 +801,7 @@ export const CreateOnlineClassView: React.FC = () => {
               <div className="border-b border-slate-100 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                    <Shield className="w-4 h-4 text-blue-600" />
+                    <Shield className="w-4 h-4 text-[#f39223]" />
                     Step 4: Interactive Controls, Governance & Permissions
                   </div>
                   <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
@@ -843,7 +843,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     key: 'allowStudentMic',
                     title: 'Allow Student Microphone Access',
                     desc: 'Students can unmute themselves during Q&A and class discussions',
-                    icon: <Mic className="w-4 h-4 text-blue-600" />,
+                    icon: <Mic className="w-4 h-4 text-teal-600" />,
                   },
                   {
                     key: 'allowStudentCamera',
@@ -879,7 +879,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       }
                       className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                         isChecked
-                          ? 'bg-blue-50/50 border-blue-200'
+                          ? 'bg-[#fff4e6]/50 border-[#fcd8b3]'
                           : 'bg-slate-50/50 border-slate-200 opacity-75'
                       }`}
                     >
@@ -895,7 +895,7 @@ export const CreateOnlineClassView: React.FC = () => {
 
                       <div
                         className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-                          isChecked ? 'bg-blue-600' : 'bg-slate-300'
+                          isChecked ? 'bg-[#f39223]' : 'bg-slate-300'
                         }`}
                       >
                         <div
@@ -917,7 +917,7 @@ export const CreateOnlineClassView: React.FC = () => {
               <div className="border-b border-slate-100 pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                    <FileText className="w-4 h-4 text-blue-600" />
+                    <FileText className="w-4 h-4 text-[#f39223]" />
                     Step 5: Pre-Reading Materials & Assessment Sync
                   </div>
                   <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
@@ -941,7 +941,7 @@ export const CreateOnlineClassView: React.FC = () => {
                       value={newMaterialTitle}
                       onChange={(e) => setNewMaterialTitle(e.target.value)}
                       placeholder="e.g. Chapter 4 Calculus Key Formulae Handout.pdf"
-                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
                     />
                     <select
                       value={newMaterialType}
@@ -957,7 +957,7 @@ export const CreateOnlineClassView: React.FC = () => {
                     <button
                       type="button"
                       onClick={addMaterial}
-                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                      className="px-3.5 py-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all duration-200"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Attach
@@ -972,7 +972,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                          <div className="p-2 bg-[#fff4e6] text-[#c26d15] rounded-lg">
                             <FileText className="w-4 h-4" />
                           </div>
                           <div>
@@ -997,7 +997,7 @@ export const CreateOnlineClassView: React.FC = () => {
                 {/* Notifications & Broadcast Checklist */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Bell className="w-3.5 h-3.5 text-blue-600" />
+                    <Bell className="w-3.5 h-3.5 text-[#f39223]" />
                     Automated Broadcast & Reminders
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -1008,7 +1008,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, notifyStudents: e.target.checked })
                         }
-                        className="w-4 h-4 text-blue-600 rounded"
+                        className="w-4 h-4 accent-[#f39223] rounded"
                       />
                       <span className="text-slate-700 font-medium">Send push notice to Students</span>
                     </label>
@@ -1019,7 +1019,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, notifyParents: e.target.checked })
                         }
-                        className="w-4 h-4 text-blue-600 rounded"
+                        className="w-4 h-4 accent-[#f39223] rounded"
                       />
                       <span className="text-slate-700 font-medium">Notify Parents via Portal App</span>
                     </label>
@@ -1030,7 +1030,7 @@ export const CreateOnlineClassView: React.FC = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, sendCalendarInvite: e.target.checked })
                         }
-                        className="w-4 h-4 text-blue-600 rounded"
+                        className="w-4 h-4 accent-[#f39223] rounded"
                       />
                       <span className="text-slate-700 font-medium">Sync with Google/Outlook Calendar</span>
                     </label>
@@ -1093,7 +1093,7 @@ export const CreateOnlineClassView: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs sticky top-20 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-blue-600" />
+                <Eye className="w-4 h-4 text-[#f39223]" />
                 <span className="text-xs font-bold text-slate-900">Student Portal Card Preview</span>
               </div>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1102,17 +1102,17 @@ export const CreateOnlineClassView: React.FC = () => {
             </div>
 
             {/* Simulated Student Class Card */}
-            <div className="rounded-2xl border border-blue-200 bg-linear-to-b from-blue-50/50 via-white to-slate-50/50 p-4 shadow-sm space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-blue-600 text-white uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-[#f39223] text-white uppercase tracking-wider">
                     {formData.subject}
                   </span>
                   <h3 className="text-sm font-black text-slate-900 leading-tight">
                     {formData.title || 'Untitled Online Class Session'}
                   </h3>
                 </div>
-                <div className="p-2 rounded-xl bg-blue-100 text-blue-700 shrink-0">
+                <div className="p-2 rounded-xl bg-[#fff4e6] text-[#c26d15] shrink-0">
                   <Video className="w-4 h-4" />
                 </div>
               </div>
@@ -1126,9 +1126,9 @@ export const CreateOnlineClassView: React.FC = () => {
               </div>
 
               {/* Timing Grid */}
-              <div className="p-2.5 bg-white rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-[11px]">
                 <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                  <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                  <Calendar className="w-3.5 h-3.5 text-[#f39223]" />
                   <span>{formData.date || 'Today'}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
@@ -1144,7 +1144,7 @@ export const CreateOnlineClassView: React.FC = () => {
                 <img
                   src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
                   alt="Instructor"
-                  className="w-8 h-8 rounded-full border border-blue-400 object-cover"
+                  className="w-8 h-8 rounded-full border border-[#f39223] object-cover"
                 />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-900 truncate">
@@ -1182,7 +1182,7 @@ export const CreateOnlineClassView: React.FC = () => {
               <div className="pt-2">
                 <button
                   type="button"
-                  className="w-full py-2 bg-blue-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all duration-200"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   Join Live Lecture
@@ -1191,12 +1191,12 @@ export const CreateOnlineClassView: React.FC = () => {
             </div>
 
             {/* Quick Tips Box */}
-            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200/80 space-y-1.5 text-xs">
-              <span className="font-bold text-blue-900 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <div className="p-3 bg-[#fff4e6] rounded-xl border border-[#fcd8b3] space-y-1.5 text-xs">
+              <span className="font-bold text-[#c26d15] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#f39223]" />
                 Teacher Tip
               </span>
-              <p className="text-[11px] text-blue-800 leading-snug">
+              <p className="text-[11px] text-[#c26d15] leading-snug">
                 You can start a test session anytime by clicking <b>"Start Instantly"</b>. Students in your selected class section will receive immediate portal notifications.
               </p>
             </div>

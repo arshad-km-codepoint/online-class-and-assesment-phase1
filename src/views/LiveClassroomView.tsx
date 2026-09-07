@@ -269,7 +269,7 @@ export const LiveClassroomView: React.FC = () => {
           {/* Teacher Launch Assessment Button */}
           <button
             onClick={() => setShowAssessmentCreatorModal(true)}
-            className="px-3 py-1.5 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all duration-200"
           >
             <Zap className="w-3.5 h-3.5 text-amber-300" />
             <span className="hidden sm:inline">⚡ Send Live Assessment</span>
@@ -281,7 +281,7 @@ export const LiveClassroomView: React.FC = () => {
             <button
               onClick={() => setClassroomRole('teacher')}
               className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                classroomRole === 'teacher' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                classroomRole === 'teacher' ? 'bg-[#f39223] text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Teacher (Host)
@@ -404,7 +404,7 @@ export const LiveClassroomView: React.FC = () => {
                       {classroomRole === 'teacher' ? (
                         <button
                           onClick={() => setShowTeacherAssessmentReviewModal(true)}
-                          className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center justify-center gap-1"
+                          className="w-full py-1.5 bg-[#f39223] hover:bg-[#e08217] text-white rounded-lg text-xs font-bold shadow-xs flex items-center justify-center gap-1 transition-colors"
                         >
                           <Award className="w-3.5 h-3.5" />
                           <span>Review ({totalSubmissions} Submissions)</span>
@@ -424,7 +424,7 @@ export const LiveClassroomView: React.FC = () => {
 
                 {/* Current Slide / Topic Banner */}
                 <div className="absolute bottom-4 left-4 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700/60 text-xs text-slate-300 flex items-center gap-3">
-                  <div className="p-1.5 bg-blue-600 rounded-lg text-white">
+                  <div className="p-1.5 bg-[#f39223] rounded-lg text-white">
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
@@ -478,7 +478,7 @@ export const LiveClassroomView: React.FC = () => {
                 onClick={() => setActiveSidePanel('chat')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
                   activeSidePanel === 'chat'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[#f39223] text-white'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`}
               >
@@ -490,7 +490,7 @@ export const LiveClassroomView: React.FC = () => {
                 onClick={() => setActiveSidePanel('participants')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
                   activeSidePanel === 'participants'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[#f39223] text-white'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`}
               >
@@ -502,7 +502,7 @@ export const LiveClassroomView: React.FC = () => {
                 onClick={() => setActiveSidePanel('materials')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
                   activeSidePanel === 'materials'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[#f39223] text-white'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`}
               >
@@ -548,7 +548,7 @@ export const LiveClassroomView: React.FC = () => {
                         />
                         <span
                           className={`font-bold ${
-                            msg.role === 'teacher' ? 'text-blue-400' : 'text-slate-300'
+                            msg.role === 'teacher' ? 'text-[#f39223]' : 'text-slate-300'
                           }`}
                         >
                           {msg.sender}
@@ -559,9 +559,9 @@ export const LiveClassroomView: React.FC = () => {
 
                     {msg.isAssessmentBroadcast ? (
                       /* Live Assessment Interactive Chat Card */
-                      <div className="p-3.5 rounded-2xl bg-linear-to-r from-blue-950 via-indigo-950 to-slate-900 border-2 border-blue-500/40 shadow-xl space-y-2.5">
+                      <div className="p-3.5 rounded-2xl bg-slate-900 border-2 border-[#f39223]/40 shadow-xl space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-300 border border-blue-400/40">
+                          <span className="flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#f39223]/30 text-amber-200 border border-[#f39223]/40">
                             <Zap className="w-3 h-3 fill-amber-300 text-amber-300" />
                             Live In-Class Assessment
                           </span>
@@ -581,9 +581,9 @@ export const LiveClassroomView: React.FC = () => {
                           {classroomRole === 'teacher' ? (
                             <button
                               onClick={() => setShowTeacherAssessmentReviewModal(true)}
-                              className="w-full py-2 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5 transition-all"
+                              className="w-full py-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-all duration-200"
                             >
-                              <Award className="w-3.5 h-3.5 text-amber-300" />
+                              <Award className="w-3.5 h-3.5 text-white" />
                               <span>Review Student Answers ({totalSubmissions} Submissions)</span>
                             </button>
                           ) : (
@@ -616,7 +616,7 @@ export const LiveClassroomView: React.FC = () => {
                       <div
                         className={`p-2.5 rounded-xl text-xs ${
                           msg.role === 'teacher'
-                            ? 'bg-blue-950/60 border border-blue-800/60 text-blue-100'
+                            ? 'bg-slate-800/90 border border-slate-700 text-amber-200'
                             : 'bg-slate-800/80 border border-slate-700 text-slate-200'
                         }`}
                       >
@@ -632,7 +632,7 @@ export const LiveClassroomView: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-400">
                   <span>Enrolled Attendees</span>
-                  <span className="text-blue-400">{participants.length} Active</span>
+                  <span className="text-[#f39223]">{participants.length} Active</span>
                 </div>
                 {participants.map((p) => (
                   <div
@@ -681,7 +681,7 @@ export const LiveClassroomView: React.FC = () => {
                     </p>
                     <button
                       onClick={() => addToast('Downloading File', `Saved ${m.title}`, 'success')}
-                      className="w-full mt-1 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold text-center"
+                      className="w-full mt-1 py-1 bg-[#f39223] hover:bg-[#e08217] text-white rounded-lg text-[10px] font-bold text-center transition-colors"
                     >
                       Download Material
                     </button>
@@ -700,7 +700,7 @@ export const LiveClassroomView: React.FC = () => {
                   </span>
                   <button
                     onClick={() => setShowAssessmentCreatorModal(true)}
-                    className="text-[11px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1"
+                    className="text-[11px] text-[#f39223] hover:text-amber-300 font-bold flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
                     <span>Select/Customize</span>
@@ -709,7 +709,7 @@ export const LiveClassroomView: React.FC = () => {
 
                 {/* Active Live Assessment Monitor if active */}
                 {activeLiveAssessment && (
-                  <div className="p-3.5 rounded-2xl bg-linear-to-r from-blue-950 via-indigo-950 to-slate-900 border-2 border-amber-500/40 space-y-2">
+                  <div className="p-3.5 rounded-2xl bg-slate-900 border-2 border-[#f39223]/40 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-red-600 text-white animate-pulse">
                         ● Live Broadcast
@@ -726,9 +726,9 @@ export const LiveClassroomView: React.FC = () => {
                         <>
                           <button
                             onClick={() => setShowTeacherAssessmentReviewModal(true)}
-                            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-all"
+                            className="w-full py-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all duration-200"
                           >
-                            <Award className="w-3.5 h-3.5 text-amber-300" />
+                            <Award className="w-3.5 h-3.5 text-white" />
                             <span>View Live Submissions ({activeLiveAssessment.submissions.length})</span>
                           </button>
                           <button
@@ -765,12 +765,12 @@ export const LiveClassroomView: React.FC = () => {
                           key={ass.id}
                           className={`p-3 rounded-xl border space-y-2 text-xs transition-all ${
                             isCurrentActive
-                              ? 'bg-slate-800/90 border-blue-500/60'
+                              ? 'bg-slate-800/90 border-[#f39223]/60'
                               : 'bg-slate-800/40 border-slate-700/60'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-blue-400">{ass.subject}</span>
+                            <span className="text-[10px] font-bold text-[#f39223]">{ass.subject}</span>
                             <span className="text-[10px] text-slate-400 font-semibold">
                               {ass.durationSeconds > 0 ? `${Math.floor(ass.durationSeconds / 60)}m` : 'Untimed'} • {ass.totalMarks}M
                             </span>
@@ -788,7 +788,7 @@ export const LiveClassroomView: React.FC = () => {
                                   'success'
                                 );
                               }}
-                              className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-all"
+                              className="flex-1 py-1.5 bg-[#f39223] hover:bg-[#e08217] text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-all"
                             >
                               <Send className="w-3 h-3" />
                               <span>{isCurrentActive ? 'Re-broadcast' : 'Share to Class'}</span>
@@ -828,11 +828,11 @@ export const LiveClassroomView: React.FC = () => {
                       ? 'Type message as Teacher...'
                       : 'Type message as Student...'
                   }
-                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#f39223] placeholder:text-slate-500"
                 />
                 <button
                   onClick={sendMessage}
-                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs"
+                  className="p-2 bg-[#f39223] hover:bg-[#e08217] text-white rounded-xl shadow-xs transition-colors"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -856,7 +856,7 @@ export const LiveClassroomView: React.FC = () => {
       <div className="h-16 bg-slate-900 border-t border-slate-800 px-6 flex items-center justify-between shrink-0">
         {/* Left Info */}
         <div className="flex items-center gap-2 text-xs text-slate-400">
-          <Clock className="w-4 h-4 text-blue-400" />
+          <Clock className="w-4 h-4 text-[#f39223]" />
           <span className="font-bold text-slate-200">Scheduled: {currentClass.durationMinutes} mins</span>
         </div>
 
@@ -903,7 +903,7 @@ export const LiveClassroomView: React.FC = () => {
             }}
             className={`p-3 rounded-2xl transition-all shadow-md ${
               isScreenSharing
-                ? 'bg-blue-600 text-white shadow-blue-600/30'
+                ? 'bg-[#f39223] text-white shadow-[#f39223]/30'
                 : 'bg-slate-800 hover:bg-slate-700 text-white'
             }`}
             title="Share Screen"
@@ -931,7 +931,7 @@ export const LiveClassroomView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowTeacherAssessmentReviewModal(true)}
-            className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 bg-[#f39223]/20 hover:bg-[#f39223]/30 text-amber-300 border border-[#f39223]/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
           >
             <Award className="w-3.5 h-3.5 text-amber-300" />
             <span>Assessments ({totalSubmissions})</span>

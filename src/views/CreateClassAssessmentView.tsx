@@ -128,9 +128,9 @@ export const CreateClassAssessmentView: React.FC = () => {
   };
   const renderDropIndicator = () => (
     <div aria-hidden="true" className="pointer-events-none absolute -top-0.5 inset-x-0 z-10 flex items-center motion-safe:animate-pulse">
-      <span className="h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-white" />
-      <span className="h-0.5 flex-1 bg-blue-600 shadow-sm" />
-      <span className="absolute right-1 -top-5 rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">Drop here</span>
+      <span className="h-2.5 w-2.5 rounded-full bg-[#f39223] ring-2 ring-white" />
+      <span className="h-0.5 flex-1 bg-[#f39223] shadow-sm" />
+      <span className="absolute right-1 -top-5 rounded-md bg-[#f39223] px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">Drop here</span>
     </div>
   );
   const removeSection = (id: string) => {
@@ -625,14 +625,14 @@ export const CreateClassAssessmentView: React.FC = () => {
       {step === 0 && <>
       {/* Assessment Header Configuration Card */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-blue-600" />
+            <BookOpen className="w-4 h-4 text-[#f39223]" />
             Assessment Details & Target Audience
           </span>
           <div className="flex items-center gap-3 text-xs font-bold">
-            <span className="text-slate-600">
-              Total Marks: <strong className="text-blue-600 font-black">{totalCalculatedMarks}</strong>
+            <span className="text-slate-600 dark:text-slate-400">
+              Total Marks: <strong className="text-[#f39223] font-black">{totalCalculatedMarks}</strong>
             </span>
             <span>•</span>
             <span className="text-slate-600">
@@ -653,7 +653,7 @@ export const CreateClassAssessmentView: React.FC = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Spot Check: Differentiation Rules & Applications"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
             />
           </div>
 
@@ -664,7 +664,7 @@ export const CreateClassAssessmentView: React.FC = () => {
               aria-label="Subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
             >
               <option value="Physics">Physics</option>
               <option value="Mathematics">Mathematics</option>
@@ -682,7 +682,7 @@ export const CreateClassAssessmentView: React.FC = () => {
               aria-label="Target class"
               value={targetClass}
               onChange={(e) => setTargetClass(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
             >
               <option value="Grade 12 - Section A">Grade 12 - Section A</option>
               <option value="Grade 12 - Section B">Grade 12 - Section B</option>
@@ -702,12 +702,12 @@ export const CreateClassAssessmentView: React.FC = () => {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g. Calculus: Chain Rule & Implicit Differentiation"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#f39223] focus:outline-none"
             />
           </div>
 
         </div>
-        <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800">Next, search the question pool and select questions. You can adjust the timer and passing marks in the final step.</div>
+        <div className="rounded-xl bg-[#fff4e6] p-4 text-sm text-[#c26d15] border border-[#fcd8b3]">Next, search the question pool and select questions. You can adjust the timer and passing marks in the final step.</div>
       </div>
       </>}
 
@@ -727,7 +727,7 @@ export const CreateClassAssessmentView: React.FC = () => {
       <div className="p-5 bg-white border border-slate-200 rounded-2xl space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-600" />
+            <Sparkles className="w-5 h-5 text-[#f39223]" />
             <div>
               <h3 className="text-sm font-bold text-slate-900">Add Questions to Assessment</h3>
               <p className="text-xs text-slate-500">Adding to {sectionLabel(activeSection)} · Choose a question format</p>
@@ -743,13 +743,13 @@ export const CreateClassAssessmentView: React.FC = () => {
           <button
             type="button"
             onClick={handleAddMCQ}
-            className="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 flex flex-col items-start gap-2 transition-colors"
+            className="p-3 rounded-xl bg-[#fff4e6] hover:bg-[#ffe8cc] border border-[#fcd8b3] text-[#c26d15] flex flex-col items-start gap-2 transition-colors"
           >
             <div className="flex items-center gap-1.5 font-black text-xs">
               <Plus className="w-4 h-4" />
               <span>MCQ (Single)</span>
             </div>
-            <span className="text-xs text-blue-700 font-medium">Single correct radio choice</span>
+            <span className="text-xs text-[#c26d15] font-medium">Single correct radio choice</span>
           </button>
 
           {/* Add MMCQ */}
@@ -810,9 +810,9 @@ export const CreateClassAssessmentView: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-[250px_minmax(0,1fr)] gap-5 items-start">
         <aside className="rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-4">
-          <div className="flex items-center justify-between px-2 py-3"><h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Sections</h4><button onClick={addSection} className="text-xs font-semibold text-blue-600 flex items-center gap-1"><Plus size={14} /> Add section</button></div>
-          <p className="px-2 pb-3 text-xs text-slate-500">Drag a question near a position. The blue guide snaps to where it will land.</p>
-          <div role="status" className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">{!draggedQuestionId ? 'Grab a question and drag it to a blue drop guide.' : dropTarget ? `Release to place in ${sectionLabel(sections.find(section => section.id === dropTarget.sectionId)!)}` : 'Drag to a section. Follow the blue insertion guide.'}</div>
+          <div className="flex items-center justify-between px-2 py-3"><h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Sections</h4><button onClick={addSection} className="text-xs font-semibold text-[#f39223] hover:text-[#e08217] flex items-center gap-1"><Plus size={14} /> Add section</button></div>
+          <p className="px-2 pb-3 text-xs text-slate-500">Drag a question near a position. The orange guide snaps to where it will land.</p>
+          <div role="status" className="mb-3 rounded-lg bg-[#fff4e6] border border-[#fcd8b3] px-3 py-2 text-xs font-medium text-[#c26d15]">{!draggedQuestionId ? 'Grab a question and drag it to an orange drop guide.' : dropTarget ? `Release to place in ${sectionLabel(sections.find(section => section.id === dropTarget.sectionId)!)}` : 'Drag to a section. Follow the orange insertion guide.'}</div>
           <div className="space-y-3 xl:max-h-[65vh] overflow-y-auto p-1"
             onDragOver={event => {
               if (!draggedQuestionId) return;
@@ -826,7 +826,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                 onDragOver={event => { if (draggedQuestionId) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; const target = getDropTarget(event, section.id); setDropTarget(prev => prev?.sectionId === target.sectionId && prev?.beforeId === target.beforeId ? prev : target); } }}
                 onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null); }}
                 onDrop={event => { event.preventDefault(); if (draggedQuestionId) { const target = getDropTarget(event, section.id); moveToSection(draggedQuestionId, target.sectionId, target.beforeId); } }}
-                className={`rounded-xl border p-2 transition-colors ${dropSectionId === section.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : activeSection.id === section.id ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200'}`}>
+                className={`rounded-xl border p-2 transition-colors ${dropSectionId === section.id ? 'border-[#f39223] bg-[#fff4e6] ring-2 ring-[#fcd8b3]' : activeSection.id === section.id ? 'border-[#fcd8b3] bg-[#fff4e6]/40' : 'border-slate-200'}`}>
                 <button onClick={() => {setActiveSectionId(section.id); setSelectedQuestionId(null);}} aria-pressed={activeSection.id === section.id} className="w-full p-2 text-left">
                   <span className="block break-words text-sm font-bold text-slate-800">{sectionLabel(section)}</span>
                   <span className="text-xs text-slate-500">{items.length} questions · {items.reduce((sum, q) => sum + q.marks, 0)} marks</span>
@@ -836,10 +836,10 @@ export const CreateClassAssessmentView: React.FC = () => {
                   <button key={q.id} data-question-id={q.id} draggable aria-label={`Edit question ${orderedQuestions.indexOf(q) + 1}: ${q.prompt}`} onClick={() => selectQuestion(q.id)} aria-pressed={selectedId === q.id}
                   onDragStart={event => { setDraggedQuestionId(q.id); setDropTarget(null); event.dataTransfer.setData('text/plain', q.id); event.dataTransfer.effectAllowed = 'move'; }}
                   onDragEnd={() => {setDraggedQuestionId(null); setDropTarget(null);}}
-                  className={`w-full flex gap-2 rounded-lg p-2.5 text-left cursor-grab active:cursor-grabbing ${draggedQuestionId === q.id ? 'opacity-30 ring-1 ring-dashed ring-blue-300 bg-blue-50' : ''} ${selectedId === q.id ? 'bg-white ring-1 ring-blue-300 shadow-xs' : 'hover:bg-slate-100'}`}>
+                  className={`w-full flex gap-2 rounded-lg p-2.5 text-left cursor-grab active:cursor-grabbing ${draggedQuestionId === q.id ? 'opacity-30 ring-1 ring-dashed ring-[#fcd8b3] bg-[#fff4e6]' : ''} ${selectedId === q.id ? 'bg-white ring-1 ring-[#fcd8b3] shadow-xs' : 'hover:bg-slate-100'}`}>
                   <GripVertical size={14} className="shrink-0 text-slate-400 mt-1" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-800">{orderedQuestions.indexOf(q) + 1}. {q.prompt || 'Untitled question'}</span><span className="text-xs text-slate-500">{typeLabels[q.type] || q.type} · {q.bloomsTaxonomy || 'Apply'} · {q.marks} marks</span></span>
                 </button></div>)}
-                <div data-drop-area="true" className={`relative mt-2 rounded-lg border-2 border-dashed px-2 py-4 text-center text-xs transition-colors ${dropSectionId === section.id && !dropTarget?.beforeId ? 'border-blue-500 bg-blue-100 text-blue-800' : 'border-blue-200 bg-white/60 text-blue-500'}`}>
+                <div data-drop-area="true" className={`relative mt-2 rounded-lg border-2 border-dashed px-2 py-4 text-center text-xs transition-colors ${dropSectionId === section.id && !dropTarget?.beforeId ? 'border-[#f39223] bg-[#fff4e6] text-[#c26d15]' : 'border-slate-300 bg-white/60 text-slate-500'}`}>
                   {dropSectionId === section.id && !dropTarget?.beforeId && renderDropIndicator()}
                   <span className="pointer-events-none">{dropSectionId === section.id && !dropTarget?.beforeId ? 'Release to drop here' : items.length ? 'Drop at end of section' : 'Drop into this section'}</span>
                 </div>
@@ -850,12 +850,12 @@ export const CreateClassAssessmentView: React.FC = () => {
       <div className="min-w-0 space-y-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
           <div className="flex flex-wrap justify-between items-center gap-2"><h4 className="text-sm font-bold">Section settings</h4><button disabled={sections.length === 1} onClick={() => removeSection(activeSection.id)} title="Questions will move to the first remaining section" className="text-xs text-red-600 disabled:text-slate-400 disabled:cursor-not-allowed">Remove section</button></div>
-          <div><label htmlFor="section-title" className="block text-xs font-semibold text-slate-600 mb-1">Section title <span className="font-normal text-slate-400">(optional)</span></label><input id="section-title" value={activeSection.title || ''} placeholder={sectionLabel({ ...activeSection, title: '' })} onChange={event => setSections(prev => prev.map(section => section.id === activeSection.id ? { ...section, title: event.target.value } : section))} className="w-full rounded-xl border border-slate-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-          <div><label htmlFor="section-description" className="block text-xs font-semibold text-slate-600 mb-1">Section description <span className="font-normal text-slate-400">(optional)</span></label><textarea id="section-description" rows={2} value={activeSection.description || ''} placeholder="Add context or instructions for this section…" onChange={event => setSections(prev => prev.map(section => section.id === activeSection.id ? { ...section, description: event.target.value } : section))} className="w-full rounded-xl border border-slate-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+          <div><label htmlFor="section-title" className="block text-xs font-semibold text-slate-600 mb-1">Section title <span className="font-normal text-slate-400">(optional)</span></label><input id="section-title" value={activeSection.title || ''} placeholder={sectionLabel({ ...activeSection, title: '' })} onChange={event => setSections(prev => prev.map(section => section.id === activeSection.id ? { ...section, title: event.target.value } : section))} className="w-full rounded-xl border border-slate-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f39223]" /></div>
+          <div><label htmlFor="section-description" className="block text-xs font-semibold text-slate-600 mb-1">Section description <span className="font-normal text-slate-400">(optional)</span></label><textarea id="section-description" rows={2} value={activeSection.description || ''} placeholder="Add context or instructions for this section…" onChange={event => setSections(prev => prev.map(section => section.id === activeSection.id ? { ...section, description: event.target.value } : section))} className="w-full rounded-xl border border-slate-300 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f39223]" /></div>
           <p className="text-xs text-slate-500">At least one section is required. Removing a section moves its questions to the first remaining section.</p>
         </div>
         <p role="status" className="sr-only">{sectionAnnouncement}</p>
-        {!sectionQuestions.length && <div className="rounded-2xl border border-dashed border-blue-300 bg-blue-50 p-8 text-center"><h4 className="font-semibold text-slate-800">Your section is ready for questions</h4><p className="mt-2 text-sm text-slate-500">Search the question pool above and add selected questions to this section. You can also move questions between sections.</p></div>}
+        {!sectionQuestions.length && <div className="rounded-2xl border border-dashed border-[#fcd8b3] bg-[#fff4e6] p-8 text-center"><h4 className="font-semibold text-slate-800">Your section is ready for questions</h4><p className="mt-2 text-sm text-slate-500">Search the question pool above and add selected questions to this section. You can also move questions between sections.</p></div>}
         {orderedQuestions.map((q, idx) => q.id === selectedId && (
           <div
             key={q.id}
@@ -871,7 +871,7 @@ export const CreateClassAssessmentView: React.FC = () => {
 
                 {/* Question Type Tag */}
                 {q.type === 'mcq' && (
-                  <span className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200 text-xs font-extrabold">
+                  <span className="px-2.5 py-1 rounded-lg bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3] text-xs font-extrabold">
                     MCQ (Single Choice)
                   </span>
                 )}
@@ -906,7 +906,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                     onChange={(e) =>
                       handleUpdateQuestion(q.id, { bloomsTaxonomy: e.target.value as BloomsTaxonomyLevel })
                     }
-                    className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f39223]"
                   >
                     {bloomsTaxonomyLevels.map((lvl) => (
                       <option key={lvl} value={lvl}>{lvl}</option>
@@ -982,7 +982,7 @@ export const CreateClassAssessmentView: React.FC = () => {
               value={q.prompt}
                 onChange={(e) => handleUpdateQuestion(q.id, { prompt: e.target.value })}
                 placeholder="Enter question statement, instructions, or scenario description..."
-                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f39223]"
               />
             </div>
 
@@ -996,7 +996,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleAddOption(q.id)}
-                    className="text-xs text-blue-600 font-bold hover:text-blue-700 flex items-center gap-1"
+                    className="text-xs text-[#f39223] font-bold hover:text-[#e08217] flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Option</span>
@@ -1011,7 +1011,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                         key={optIdx}
                         className={`p-2.5 rounded-xl border flex items-center gap-3 transition-all ${
                           isCorrect
-                            ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-400'
+                            ? 'bg-[#fff4e6] border-[#f39223] ring-1 ring-[#fcd8b3]'
                             : 'bg-slate-50 border-slate-200'
                         }`}
                       >
@@ -1020,7 +1020,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                           name={`correct-${q.id}`}
                           checked={isCorrect}
                           onChange={() => handleUpdateQuestion(q.id, { correctOptionIndex: optIdx })}
-                          className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          className="w-4 h-4 accent-[#f39223]"
                         />
                         <span className="w-5 text-xs font-bold text-slate-500">
                           {String.fromCharCode(65 + optIdx)})
@@ -1033,7 +1033,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                             copy[optIdx] = e.target.value;
                             handleUpdateQuestion(q.id, { options: copy });
                           }}
-                          className="flex-1 px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
                         />
                         <button
                           type="button"
@@ -1458,7 +1458,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                 value={q.explanation || ''}
                 onChange={(e) => handleUpdateQuestion(q.id, { explanation: e.target.value })}
                 placeholder="Explain the step-by-step reasoning or mathematical theorem..."
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f39223]"
               />
             </div>
           </div>
@@ -1479,7 +1479,7 @@ export const CreateClassAssessmentView: React.FC = () => {
               aria-label="Timer limit"
               value={durationSeconds}
               onChange={(e) => setDurationSeconds(Number(e.target.value))}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
             >
               <option value={60}>1 Minute (Lightning Poll)</option>
               <option value={120}>2 Minutes (Quick Check)</option>
@@ -1500,24 +1500,24 @@ export const CreateClassAssessmentView: React.FC = () => {
               aria-label="Pass mark cutoff"
               value={passMarks}
               onChange={(e) => setPassMarks(Number(e.target.value))}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
             />
           </div>
           </div>
           <div>
             <label htmlFor="assessment-instructions" className="block text-sm font-semibold text-slate-800 mb-2">Student instructions</label>
             <textarea id="assessment-instructions" value={instructions} onChange={e => setInstructions(e.target.value)} rows={4}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f39223]" />
           </div>
           <div className="border-t border-slate-100 pt-5">
-            <div className="flex justify-between items-center mb-3"><h4 className="font-bold text-sm">Question summary</h4><button onClick={() => goToStep(1)} className="text-sm font-semibold text-blue-600">Edit questions</button></div>
+            <div className="flex justify-between items-center mb-3"><h4 className="font-bold text-sm">Question summary</h4><button onClick={() => goToStep(1)} className="text-sm font-semibold text-[#f39223] hover:text-[#e08217]">Edit questions</button></div>
             {orderedQuestions.map((q, index) => <button key={q.id} onClick={() => {selectQuestion(q.id); goToStep(1);}} className="w-full flex items-center gap-3 py-3 border-b border-slate-100 text-left hover:bg-slate-50">
               <span className="text-xs text-slate-400">{index + 1}.</span><span className="flex-1 min-w-0"><span className="block truncate text-sm font-medium">{q.prompt || 'Untitled question'}</span><span className="text-xs text-slate-500">{sectionLabel(sections.find(section => section.id === sectionIdFor(q, sections))!)} · {typeLabels[q.type] || q.type} · Bloom: {q.bloomsTaxonomy || 'Apply'}</span></span><span className="text-xs whitespace-nowrap text-slate-500">{q.marks} marks</span>
             </button>)}
           </div>
         </div>
         <aside className="rounded-2xl border border-slate-200 bg-white p-6 space-y-5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">Assessment overview</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#f39223]">Assessment overview</span>
           <h4 className="text-lg font-bold break-words">{title || 'Untitled assessment'}</h4>
           <p className="text-sm text-slate-500">{subject} · {topic}</p>
           <dl className="space-y-3 text-sm">
@@ -1525,7 +1525,7 @@ export const CreateClassAssessmentView: React.FC = () => {
             <div className="flex justify-between"><dt className="text-slate-500">Duration</dt><dd>{durationSeconds ? `${durationSeconds / 60} minutes` : 'Untimed'}</dd></div>
             <div className="flex justify-between"><dt className="text-slate-500">Passing score</dt><dd>{passMarks} / {totalCalculatedMarks}</dd></div>
           </dl>
-          <button onClick={() => goToStep(0)} className="text-sm font-semibold text-blue-600">Edit details</button>
+          <button onClick={() => goToStep(0)} className="text-sm font-semibold text-[#f39223] hover:text-[#e08217]">Edit details</button>
           <button onClick={() => setShowPreviewModal(true)} className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 text-sm font-semibold hover:bg-slate-50"><Eye className="w-4 h-4" /> Student Preview</button>
           <p className="text-xs leading-relaxed text-slate-500">Save to your library for later, or share directly in a live class. Save a draft if you are still working.</p>
         </aside>
@@ -1588,9 +1588,9 @@ export const CreateClassAssessmentView: React.FC = () => {
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
-            <div className="p-4 bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-xl shadow-md">
+                <div className="p-2 bg-[#f39223] rounded-xl shadow-md">
                   <Eye className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -1615,7 +1615,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-black text-slate-900 text-sm">Question {idx + 1}</span>
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3]">
                         {typeLabels[q.type] || q.type}
                       </span>
                       {q.bloomsTaxonomy && (
@@ -1637,9 +1637,9 @@ export const CreateClassAssessmentView: React.FC = () => {
                       {q.options.map((opt, oIdx) => (
                         <label
                           key={oIdx}
-                          className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 cursor-pointer hover:border-blue-400 text-xs font-medium text-slate-800"
+                          className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 cursor-pointer hover:border-[#f39223] text-xs font-medium text-slate-800"
                         >
-                          <input type="radio" name={`prev-q-${q.id}`} className="w-4 h-4 text-blue-600" />
+                          <input type="radio" name={`prev-q-${q.id}`} className="w-4 h-4 accent-[#f39223]" />
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -1692,7 +1692,7 @@ export const CreateClassAssessmentView: React.FC = () => {
                           className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-white rounded-xl border border-slate-200 items-center text-xs"
                         >
                           <span className="font-bold text-slate-800 px-2">{pair.leftText}</span>
-                          <select className="px-2.5 py-1.5 bg-blue-50 border border-blue-300 rounded-lg font-semibold text-blue-900 focus:outline-none">
+                          <select className="px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]">
                             <option value="">Select Matching Option...</option>
                             {q.matchingPairs?.map((m) => (
                               <option key={m.id} value={m.rightText}>

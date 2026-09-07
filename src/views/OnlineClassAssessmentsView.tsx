@@ -106,7 +106,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
     switch (type) {
       case 'mcq':
         return (
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3]">
             MCQ (Single)
           </span>
         );
@@ -294,8 +294,8 @@ export const OnlineClassAssessmentsView: React.FC = () => {
       {/* Assessment Cards Grid */}
       <div className="space-y-4">
         {filteredAssessments.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300 p-8 space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+          <div className="text-center py-16 bg-white dark:bg-[#1a2130] rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 p-8 space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-full bg-[#fff4e6] dark:bg-[#f39223]/10 flex items-center justify-center text-[#f39223]">
               <FileCheck className="w-7 h-7" />
             </div>
             <div>
@@ -330,7 +330,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                 <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wider bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3]">
                         {ass.subject}
                       </span>
                       {ass.targetClass && (
@@ -357,30 +357,30 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                       )}
                     </div>
 
-                    <h3 className="text-base font-extrabold text-slate-900 hover:text-blue-600 transition-colors">
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 hover:text-[#f39223] transition-colors">
                       {ass.title}
                     </h3>
 
                     <p className="text-xs text-slate-500 line-clamp-1">
-                      <span className="font-semibold text-slate-700">Topic:</span> {ass.topic}
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Topic:</span> {ass.topic}
                     </p>
 
                     {/* Metadata Chips */}
                     <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap pt-1">
-                      <span className="flex items-center gap-1 font-semibold text-slate-700">
-                        <Clock className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+                        <Clock className="w-3.5 h-3.5 text-[#f39223]" />
                         {ass.durationSeconds > 0
                           ? `${Math.floor(ass.durationSeconds / 60)} Minutes Timer`
                           : 'Untimed'}
                       </span>
                       <span>•</span>
-                      <span className="flex items-center gap-1 font-semibold text-slate-700">
-                        <Award className="w-3.5 h-3.5 text-amber-600" />
-                        {ass.totalMarks} Total Marks
+                      <span className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
+                        <Sparkles className="w-3.5 h-3.5 text-[#f39223]" />
+                        Average Score:
                       </span>
                       <span>•</span>
                       <span className="flex items-center gap-1 font-semibold text-slate-700">
-                        <Layers className="w-3.5 h-3.5 text-purple-600" />
+                        <Layers className="w-3.5 h-3.5 text-orange-500" />
                         {ass.questions.length} Questions
                       </span>
                       <span>•</span>
@@ -392,7 +392,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                     {/* Question Type Breakdown Pills */}
                     <div className="flex items-center gap-1.5 flex-wrap pt-1">
                       {mcqCount > 0 && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#fff4e6] text-[#c26d15] border border-[#fcd8b3]">
                           {mcqCount} MCQ
                         </span>
                       )}
@@ -484,7 +484,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                   <div className="px-5 pb-5 pt-2 border-t border-slate-100 bg-slate-50/70 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <Sparkles className="w-3.5 h-3.5 text-[#f39223]" />
                         Included Questions ({ass.questions.length})
                       </span>
                       <span className="text-[11px] text-slate-500 font-semibold">
@@ -549,11 +549,11 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                                     key={pair.id || pIdx}
                                     className="p-2 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs"
                                   >
-                                    <span className="font-semibold text-slate-800">
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
                                       {pair.leftText}
                                     </span>
                                     <span className="text-slate-400">➔</span>
-                                    <span className="font-bold text-blue-700">
+                                    <span className="font-bold text-[#f39223]">
                                       {pair.rightText}
                                     </span>
                                   </div>
@@ -618,7 +618,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden text-slate-900">
             {/* Header */}
-            <div className="p-4 bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex items-center justify-between shrink-0">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-[var(--primary)] rounded-xl shadow-md text-white">
                   <Eye className="w-5 h-5" />
@@ -643,7 +643,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 font-medium">
+              <div className="p-3 bg-[#fff4e6] border border-[#fcd8b3] rounded-xl text-xs text-[#c26d15] font-medium">
                 ℹ️ This is a preview mode demonstrating how questions (MCQ, MMCQ, Fill in blanks, Match the following) will render for connected students in the live online class.
               </div>
 
@@ -668,9 +668,9 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                         {q.options.map((opt, oIdx) => (
                           <label
                             key={oIdx}
-                            className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 cursor-pointer hover:border-blue-400 transition-all text-xs font-medium text-slate-800"
+                            className="p-3 rounded-xl border border-slate-200 bg-white flex items-center gap-3 cursor-pointer hover:border-[#f39223] transition-all text-xs font-medium text-slate-800"
                           >
-                            <input type="radio" name={`prev-q-${q.id}`} className="w-4 h-4 text-blue-600" />
+                            <input type="radio" name={`prev-q-${q.id}`} className="w-4 h-4 accent-[#f39223]" />
                             <span>{opt}</span>
                           </label>
                         ))}
@@ -743,7 +743,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
                             className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-white rounded-xl border border-slate-200 items-center text-xs"
                           >
                             <span className="font-bold text-slate-800 px-2">{pair.leftText}</span>
-                            <select className="px-2.5 py-1.5 bg-blue-50 border border-blue-300 rounded-lg font-semibold text-blue-900 focus:outline-none">
+                            <select className="px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]">
                               <option value="">Select Matching Option...</option>
                               {q.matchingPairs?.map((m) => (
                                 <option key={m.id} value={m.rightText}>
@@ -862,7 +862,7 @@ export const OnlineClassAssessmentsView: React.FC = () => {
               <select
                 value={targetClassId}
                 onChange={(e) => setTargetClassId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
               >
                 {onlineClasses.map((cls) => (
                   <option key={cls.id} value={cls.id}>
