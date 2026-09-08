@@ -46,6 +46,14 @@ import {
   StudentVerificationProfile,
 } from '../types';
 import {
+  GlobalAppConfig,
+  TenantInfo,
+  TenantConfigRecord,
+  INITIAL_GLOBAL_CONFIG,
+  MOCK_TENANTS,
+  INITIAL_TENANT_CONFIGS,
+} from '../types/config';
+import {
   mockStudents as initialStudents,
   mockExams as initialExams,
   mockAlerts as initialAlerts,
@@ -331,6 +339,20 @@ interface ExamContextType {
   publishExamResults: (examId: string, options: { notifyApp: boolean; notifyEmail: boolean; notifyParent: boolean }) => void;
   unpublishExamResults: (examId: string) => void;
   checkExamPublishBlocked: (examId: string) => EvaluationDashboardItem[];
+
+  // Configuration Center (Global & Tenant-wise Settings)
+  globalConfig: GlobalAppConfig;
+  setGlobalConfig: React.Dispatch<React.SetStateAction<GlobalAppConfig>>;
+  tenantConfigs: Record<string, TenantConfigRecord>;
+  setTenantConfigs: React.Dispatch<React.SetStateAction<Record<string, TenantConfigRecord>>>;
+  activeTenantId: string;
+  setActiveTenantId: (id: string) => void;
+  tenants: TenantInfo[];
+  configScope: 'global' | 'tenant';
+  setConfigScope: (scope: 'global' | 'tenant') => void;
+  saveGlobalConfig: (newConfig: GlobalAppConfig) => void;
+  saveTenantConfig: (tenantId: string, updatedRecord: TenantConfigRecord) => void;
+  resetTenantToGlobal: (tenantId: string) => void;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -343,6 +365,7 @@ const VALID_TEACHER_TABS: ActiveNavTab[] = [
   'create-class-assessment',
   'create-online-class',
   'live-classroom',
+  'settings',
 ];
 
 const VALID_STUDENT_TABS: ActiveNavTab[] = [
@@ -566,29 +589,39 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (Array.isArray(parsed)) {
           const valid = parsed
             .filter(q => q && typeof q.id === 'string' && typeof q.prompt === 'string' && typeof q.subject === 'string' && typeof q.topic === 'string' && q.type !== 'short_answer' && ['mcq', 'mmcq', 'fill_in_blanks', 'match_following', 'step_ordering'].includes(q.type))
-            .map(q => ({
-              ...q,
-              board: q.board || 'CBSE',
-              classGrade: q.classGrade || 'Class 10',
-              chapter: q.chapter || '',
-              bloomsTaxonomy: q.bloomsTaxonomy || 'Apply',
-            }));
+            .map(q => {
+              const level = q.level || (q.marks === 1 || q.difficulty === 'Easy' ? 'Level 1' : (q.marks && q.marks >= 3) || q.difficulty === 'Hard' ? 'Level 3' : 'Level 2');
+              return {
+                ...q,
+                board: q.board || 'CBSE',
+                classGrade: q.classGrade || 'Class 10',
+                chapter: q.chapter || '',
+                bloomsTaxonomy: q.bloomsTaxonomy || 'Apply',
+                level,
+                tags: Array.isArray(q.tags) ? q.tags : ['NCERT'],
+              };
+            });
           if (valid.length > 0) return valid;
         }
       }
     } catch { /* Use starter questions when storage is unavailable or invalid. */ }
-    return initialLiveAssessments.flatMap(assessment => assessment.questions.map(q => ({
-      ...structuredClone(q),
-      id: `pool-${assessment.id}-${q.id}`,
-      sectionId: undefined,
-      board: q.board || assessment.board || 'CBSE',
-      classGrade: q.classGrade || assessment.classGrade || (assessment.targetClass?.includes('12') ? 'Class 12' : assessment.targetClass?.includes('11') ? 'Class 11' : 'Class 10'),
-      chapter: q.chapter || assessment.chapter || (assessment.topic?.includes(':') ? assessment.topic.split(':')[0].trim() : assessment.topic),
-      subject: assessment.subject,
-      topic: assessment.topic,
-      difficulty: 'Medium' as const,
-      bloomsTaxonomy: q.bloomsTaxonomy || 'Apply' as const,
-    })));
+    return initialLiveAssessments.flatMap(assessment => assessment.questions.map(q => {
+      const level = q.level || (q.marks === 1 ? 'Level 1' : q.marks >= 3 ? 'Level 3' : 'Level 2');
+      return {
+        ...structuredClone(q),
+        id: `pool-${assessment.id}-${q.id}`,
+        sectionId: undefined,
+        board: q.board || assessment.board || 'CBSE',
+        classGrade: q.classGrade || assessment.classGrade || (assessment.targetClass?.includes('12') ? 'Class 12' : assessment.targetClass?.includes('11') ? 'Class 11' : 'Class 10'),
+        chapter: q.chapter || assessment.chapter || (assessment.topic?.includes(':') ? assessment.topic.split(':')[0].trim() : assessment.topic),
+        subject: assessment.subject,
+        topic: assessment.topic,
+        difficulty: level === 'Level 1' ? ('Easy' as const) : level === 'Level 3' ? ('Hard' as const) : ('Medium' as const),
+        bloomsTaxonomy: q.bloomsTaxonomy || 'Apply' as const,
+        level,
+        tags: q.tags || ['NCERT', assessment.subject],
+      };
+    }));
   });
   const persistQuestionPool = (next: PoolQuestion[]) => {
     try {
@@ -840,6 +873,89 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       `Shared live assessment solutions & leaderboard with classroom!`,
       'success'
     );
+  };
+
+  // Configuration Center State
+  const [globalConfig, setGlobalConfig] = useState<GlobalAppConfig>(() => {
+    try {
+      const saved = localStorage.getItem('campusenlight_global_config_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.platform && parsed.classroom) {
+          return { ...INITIAL_GLOBAL_CONFIG, ...parsed };
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_GLOBAL_CONFIG;
+  });
+
+  const [tenantConfigs, setTenantConfigs] = useState<Record<string, TenantConfigRecord>>(() => {
+    try {
+      const saved = localStorage.getItem('campusenlight_tenant_configs_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed['TENANT-001']?.organization) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return INITIAL_TENANT_CONFIGS;
+  });
+
+  const [activeTenantId, setActiveTenantId] = useState<string>('TENANT-001');
+  const [configScope, setConfigScope] = useState<'global' | 'tenant'>('global');
+  const [tenants] = useState<TenantInfo[]>(MOCK_TENANTS);
+
+  const saveGlobalConfig = (newConfig: GlobalAppConfig) => {
+    setGlobalConfig(newConfig);
+    try {
+      localStorage.setItem('campusenlight_global_config_v2', JSON.stringify(newConfig));
+    } catch {
+      // ignore
+    }
+    addToast('Global Settings Saved', 'Platform-wide configuration changes have been updated.', 'success');
+  };
+
+  const saveTenantConfig = (tenantId: string, updatedRecord: TenantConfigRecord) => {
+    setTenantConfigs((prev) => {
+      const next = { ...prev, [tenantId]: updatedRecord };
+      try {
+        localStorage.setItem('campusenlight_tenant_configs_v2', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    const tenant = tenants.find((t) => t.id === tenantId);
+    addToast('Tenant Settings Saved', `Configuration updated for "${tenant ? tenant.name : tenantId}".`, 'success');
+  };
+
+  const resetTenantToGlobal = (tenantId: string) => {
+    setTenantConfigs((prev) => {
+      const existing = prev[tenantId];
+      if (!existing) return prev;
+      const defaultRecord: TenantConfigRecord = {
+        ...existing,
+        overriddenSections: {},
+        classroom: structuredClone(globalConfig.classroom),
+        assessment: structuredClone(globalConfig.assessment),
+        smartCard: structuredClone(globalConfig.smartCard),
+        notifications: structuredClone(globalConfig.notifications),
+        dynamicParameters: structuredClone(globalConfig.dynamicParameters),
+      };
+      const next = { ...prev, [tenantId]: defaultRecord };
+      try {
+        localStorage.setItem('campusenlight_tenant_configs_v1', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    addToast('Reset Complete', 'Tenant settings reverted to inherited global baseline.', 'info');
   };
 
   // Legacy States
@@ -1899,6 +2015,20 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         publishExamResults,
         unpublishExamResults,
         checkExamPublishBlocked,
+
+        // Configuration Center
+        globalConfig,
+        setGlobalConfig,
+        tenantConfigs,
+        setTenantConfigs,
+        activeTenantId,
+        setActiveTenantId,
+        tenants,
+        configScope,
+        setConfigScope,
+        saveGlobalConfig,
+        saveTenantConfig,
+        resetTenantToGlobal,
       }}
     >
       {children}

@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { Plus, ArrowLeft, Save, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, ArrowLeft, Save, Trash2, AlertCircle, Tag, X } from 'lucide-react';
 import { useExam } from '../context/ExamContext';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { QuestionPoolBrowser } from '../components/QuestionPoolBrowser';
-import { questionTypeLabels, bloomsTaxonomyLevels } from '../utils/questionPool';
+import {
+  questionTypeLabels,
+  bloomsTaxonomyLevels,
+  questionLevels,
+  questionLevelConfig,
+  getQuestionLevel,
+} from '../utils/questionPool';
 import {
   ACADEMIC_BOARDS,
   ACADEMIC_CLASSES,
@@ -11,7 +17,7 @@ import {
   getChaptersForSubject,
   getTopicsForChapter,
 } from '../data/curriculumData';
-import type { LiveAssessmentQuestionType, PoolQuestion, BloomsTaxonomyLevel } from '../types';
+import type { LiveAssessmentQuestionType, PoolQuestion, BloomsTaxonomyLevel, QuestionLevel } from '../types';
 
 const control = 'mt-1 w-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100 placeholder:text-[var(--text-muted)]';
 const lines = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean);
@@ -26,9 +32,11 @@ function newQuestion(type: LiveAssessmentQuestionType = 'mcq'): PoolQuestion {
     subject: 'Physics',
     chapter: 'Electricity & Electromagnetic Induction',
     topic: "Ohm's Law & Resistance",
-    difficulty: 'Medium',
+    level: 'Level 1',
+    difficulty: 'Easy',
     bloomsTaxonomy: 'Apply',
-    marks: 2,
+    marks: 1,
+    tags: ['NCERT'],
     ...(type === 'mcq' ? { options: ['', '', '', ''], correctOptionIndex: 0 } : {}),
     ...(type === 'mmcq' ? { options: ['', '', '', ''], correctOptionIndices: [0], minSelections: 1 } : {}),
     ...(type === 'fill_in_blanks' ? { blankSlots: [{ id: crypto.randomUUID(), label: 'Blank 1', sentencePrefix: '', sentenceSuffix: '', correctAnswer: '' }] } : {}),
@@ -45,18 +53,29 @@ export function QuestionPoolView() {
   const [distractors, setDistractors] = useState('');
   const [wordBank, setWordBank] = useState('');
   const [isCustomTopic, setIsCustomTopic] = useState(false);
+  const [tagInput, setTagInput] = useState('');
 
   const edit = (q: PoolQuestion) => {
-    setDraft(structuredClone(q)); setError(''); setSteps(q.orderedSteps?.join('\n') || '');
-    setDistractors(q.distractorSteps?.join('\n') || ''); setWordBank(q.blankOptions?.join('\n') || '');
+    const currentLevel = getQuestionLevel(q);
+    setDraft({
+      ...structuredClone(q),
+      level: q.level || currentLevel,
+      tags: q.tags || [],
+    });
+    setError('');
+    setSteps(q.orderedSteps?.join('\n') || '');
+    setDistractors(q.distractorSteps?.join('\n') || '');
+    setWordBank(q.blankOptions?.join('\n') || '');
     setIsCustomTopic(false);
+    setTagInput('');
   };
 
   const update = (value: Partial<PoolQuestion>) => setDraft(prev => prev ? { ...prev, ...value } : prev);
 
   const save = () => {
     if (!draft) return;
-    const q = {
+    const currentLevel = draft.level || getQuestionLevel(draft);
+    const q: PoolQuestion = {
       ...draft,
       prompt: draft.prompt.trim(),
       board: draft.board || 'CBSE',
@@ -64,6 +83,10 @@ export function QuestionPoolView() {
       subject: draft.subject.trim(),
       chapter: draft.chapter?.trim() || '',
       topic: draft.topic.trim(),
+      level: currentLevel,
+      difficulty: draft.difficulty || questionLevelConfig[currentLevel].difficulty,
+      marks: Number(draft.marks) || questionLevelConfig[currentLevel].defaultPoints,
+      tags: (draft.tags || []).map(t => t.trim()).filter(Boolean),
       bloomsTaxonomy: draft.bloomsTaxonomy || 'Apply',
     };
     let issue = '';
@@ -345,7 +368,19 @@ export function QuestionPoolView() {
                       value={draft.type}
                       onChange={e => {
                         const next = newQuestion(e.target.value as LiveAssessmentQuestionType);
-                        edit({ ...next, id: draft.id, prompt: draft.prompt, subject: draft.subject, topic: draft.topic, difficulty: draft.difficulty, bloomsTaxonomy: draft.bloomsTaxonomy, marks: draft.marks, explanation: draft.explanation });
+                        edit({
+                          ...next,
+                          id: draft.id,
+                          prompt: draft.prompt,
+                          subject: draft.subject,
+                          topic: draft.topic,
+                          difficulty: draft.difficulty,
+                          bloomsTaxonomy: draft.bloomsTaxonomy,
+                          marks: draft.marks,
+                          explanation: draft.explanation,
+                          level: draft.level,
+                          tags: draft.tags,
+                        });
                       }}
                     >
                       {Object.entries(questionTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -477,25 +512,180 @@ export function QuestionPoolView() {
                     );
                   })()}
 
+                  {/* Level 1, 2, 3 [tag] - point Selector */}
+                  <div className="space-y-2 pt-2 border-t border-[var(--border-color)]">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold tracking-wide text-[var(--text-primary)]">
+                        Question Tier / Level <span className="text-red-500 font-semibold">*</span>
+                      </label>
+                      <span className="text-[11px] text-[var(--text-muted)] font-medium">
+                        Level sets default points
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {questionLevels.map((lvl) => {
+                        const meta = questionLevelConfig[lvl];
+                        const isSelected = (draft.level || getQuestionLevel(draft)) === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => {
+                              update({
+                                level: lvl,
+                                marks: meta.defaultPoints,
+                                difficulty: meta.difficulty,
+                              });
+                            }}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                              isSelected
+                                ? `${meta.activeRing} shadow-xs ring-2`
+                                : 'border-[var(--border-color)] bg-[var(--bg-main)] hover:border-slate-400 dark:hover:border-slate-600'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-black border ${
+                                  isSelected
+                                    ? meta.badgeClass
+                                    : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)]'
+                                }`}
+                              >
+                                {lvl}
+                              </span>
+                              <span className="text-[11px] font-extrabold text-[var(--primary)]">
+                                {meta.defaultPoints} pt{meta.defaultPoints > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <span className="text-[10px] leading-tight text-[var(--text-secondary)] font-medium line-clamp-1">
+                              {meta.difficulty}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Marks / Points & Difficulty refinement */}
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block text-xs font-medium tracking-wide text-[var(--text-secondary)]">
-                      Difficulty
-                      <select aria-label="Difficulty" className={control} value={draft.difficulty} onChange={e => update({ difficulty: e.target.value as PoolQuestion['difficulty'] })}>
-                        {['Easy', 'Medium', 'Hard'].map(value => <option key={value}>{value}</option>)}
-                      </select>
+                      Marks / Points <span className="text-red-500 font-semibold">*</span>
+                      <input
+                        required
+                        type="number"
+                        min="0.5"
+                        step="0.5"
+                        className={control}
+                        value={draft.marks}
+                        onChange={(e) => update({ marks: Number(e.target.value) })}
+                      />
                     </label>
                     <label className="block text-xs font-medium tracking-wide text-[var(--text-secondary)]">
-                      Marks <span className="text-red-500 font-semibold">*</span>
-                      <input required type="number" min="0.5" step="0.5" className={control} value={draft.marks} onChange={e => update({ marks: Number(e.target.value) })} />
+                      Difficulty
+                      <select
+                        aria-label="Difficulty"
+                        className={control}
+                        value={draft.difficulty}
+                        onChange={(e) => update({ difficulty: e.target.value as PoolQuestion['difficulty'] })}
+                      >
+                        {['Easy', 'Medium', 'Hard'].map((value) => (
+                          <option key={value}>{value}</option>
+                        ))}
+                      </select>
                     </label>
                   </div>
 
                   <label className="block text-xs font-medium tracking-wide text-[var(--text-secondary)]">
                     Bloom's Taxonomy
-                    <select aria-label="Bloom's Taxonomy" className={control} value={draft.bloomsTaxonomy || 'Apply'} onChange={e => update({ bloomsTaxonomy: e.target.value as BloomsTaxonomyLevel })}>
-                      {bloomsTaxonomyLevels.map(value => <option key={value} value={value}>{value}</option>)}
+                    <select
+                      aria-label="Bloom's Taxonomy"
+                      className={control}
+                      value={draft.bloomsTaxonomy || 'Apply'}
+                      onChange={(e) => update({ bloomsTaxonomy: e.target.value as BloomsTaxonomyLevel })}
+                    >
+                      {bloomsTaxonomyLevels.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
                     </select>
                   </label>
+
+                  {/* Tags [tag] Management */}
+                  <div className="space-y-2 pt-2 border-t border-[var(--border-color)]">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold tracking-wide text-[var(--text-primary)]">
+                        Question Tags <span className="text-[11px] font-normal text-[var(--text-muted)]">([tag])</span>
+                      </label>
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {(draft.tags || []).length} tag{(draft.tags || []).length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+
+                    {/* Active Tags Pills */}
+                    {(draft.tags || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)]">
+                        {(draft.tags || []).map((tag, tIdx) => (
+                          <span
+                            key={tIdx}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[var(--primary-light)]/40 text-[var(--text-primary)] border border-[var(--primary)]/30 group"
+                          >
+                            <span className="text-[var(--primary)] font-bold">#</span>
+                            <span>{tag}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                update({ tags: (draft.tags || []).filter((_, i) => i !== tIdx) })
+                              }
+                              className="text-[var(--text-muted)] hover:text-red-500 transition-colors cursor-pointer p-0.5 rounded ml-0.5"
+                              title={`Remove tag ${tag}`}
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add Custom Tag Input */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Tag size={14} className="absolute left-3 top-3 text-[var(--text-muted)]" />
+                        <input
+                          type="text"
+                          placeholder="Add a tag (press Enter)…"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const trimmed = tagInput.trim().replace(/^#/, '');
+                              if (trimmed && !(draft.tags || []).includes(trimmed)) {
+                                update({ tags: [...(draft.tags || []), trimmed] });
+                                setTagInput('');
+                              }
+                            }
+                          }}
+                          className={`${control} pl-8.5`}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const trimmed = tagInput.trim().replace(/^#/, '');
+                          if (trimmed && !(draft.tags || []).includes(trimmed)) {
+                            update({ tags: [...(draft.tags || []), trimmed] });
+                            setTagInput('');
+                          }
+                        }}
+                        disabled={!tagInput.trim()}
+                        className="rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 px-3 py-2.5 text-xs font-bold transition disabled:opacity-40 cursor-pointer shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Action buttons stuck inside the right sidebar */}

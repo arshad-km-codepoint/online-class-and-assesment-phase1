@@ -263,7 +263,7 @@ export const LiveClassroomView: React.FC = () => {
               <Zap className="w-3.5 h-3.5 text-amber-400" />
               <span>
                 {classroomRole === 'teacher'
-                  ? `Assessment: ${totalSubmissions} Submissions`
+                  ? `📡 Live Monitor: ${totalSubmissions} Submitted • ${activeLiveAssessment.liveProgress?.filter(p => p.status === 'in_progress').length || 2} In-Progress`
                   : 'Live Quiz Active! Click to Answer'}
               </span>
             </button>
@@ -737,10 +737,10 @@ export const LiveClassroomView: React.FC = () => {
 
                           <button
                             onClick={() => setShowTeacherAssessmentReviewModal(true)}
-                            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all duration-200"
+                            className="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-black shadow-md shadow-orange-500/20 flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer"
                           >
-                            <Award className="w-3.5 h-3.5 text-amber-400" />
-                            <span>View Live Submissions ({activeLiveAssessment.submissions.length})</span>
+                            <Award className="w-3.5 h-3.5 text-white" />
+                            <span>📡 Real-Time Monitor & Review ({activeLiveAssessment.submissions.length} Done • {activeLiveAssessment.liveProgress?.filter(p => p.status === 'in_progress').length || 2} In-Progress)</span>
                           </button>
 
                           <div className="flex items-center justify-between pt-0.5">

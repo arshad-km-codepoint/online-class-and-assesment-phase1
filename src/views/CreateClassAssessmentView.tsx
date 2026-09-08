@@ -3,7 +3,7 @@ import { PageWrapper } from '../components/layout/PageWrapper';
 import { QuestionPoolBrowser } from '../components/QuestionPoolBrowser';
 import { AcademicTaxonomyBar } from '../components/common/AcademicTaxonomyBar';
 import { defaultAssessmentSection, sectionIdFor, orderQuestionsBySection } from '../utils/assessmentSections';
-import { bloomsTaxonomyLevels, bloomsTaxonomyColors } from '../utils/questionPool';
+import { bloomsTaxonomyLevels, bloomsTaxonomyColors, questionLevels, questionLevelConfig, getQuestionLevel } from '../utils/questionPool';
 import { useExam } from '../context/ExamContext';
 import {
   LiveInClassAssessment,
@@ -726,6 +726,8 @@ export const CreateClassAssessmentView: React.FC = () => {
           classGrade: item.classGrade || classGrade,
           chapter: item.chapter || chapter,
           bloomsTaxonomy: item.bloomsTaxonomy || 'Apply',
+          level: item.level || getQuestionLevel(item),
+          tags: item.tags || [],
         }));
         setQuestions(prev => [...prev, ...additions]);
         if (additions[0]) setSelectedQuestionId(additions[0].id);
@@ -907,6 +909,36 @@ export const CreateClassAssessmentView: React.FC = () => {
                   </span>
                 )}
 
+                {/* Level Tier Badge & Selector */}
+                {(() => {
+                  const qLvl = getQuestionLevel(q);
+                  const meta = questionLevelConfig[qLvl];
+                  return (
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
+                      <span className={`px-2 py-0.5 rounded-md text-[11px] font-black border ${meta.badgeClass}`}>
+                        {qLvl}
+                      </span>
+                      <select
+                        aria-label="Question Tier Level"
+                        value={qLvl}
+                        onChange={(e) => {
+                          const nextLvl = e.target.value as any;
+                          const nextMeta = questionLevelConfig[nextLvl as keyof typeof questionLevelConfig];
+                          handleUpdateQuestion(q.id, {
+                            level: nextLvl,
+                            marks: nextMeta ? nextMeta.defaultPoints : q.marks,
+                          });
+                        }}
+                        className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f39223]"
+                      >
+                        {questionLevels.map((lvl) => (
+                          <option key={lvl} value={lvl}>{lvl} ({questionLevelConfig[lvl].defaultPoints} pt)</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
+
                 {/* Bloom's Taxonomy Badge & Selector */}
                 <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
                   <span className="text-xs font-bold text-slate-600">Bloom:</span>
@@ -994,6 +1026,19 @@ export const CreateClassAssessmentView: React.FC = () => {
                 placeholder="Enter question statement, instructions, or scenario description..."
                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f39223]"
               />
+              {q.tags && q.tags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                  <span className="text-[11px] text-slate-400 font-semibold">Tags:</span>
+                  {q.tags.map((t, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+                    >
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 1. MCQ BUILDER */}

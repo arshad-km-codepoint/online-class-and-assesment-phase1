@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Moon, Sun } from 'lucide-react';
+import { Bell, Moon, Sun, SlidersHorizontal } from 'lucide-react';
 import { useExam } from '../../context/ExamContext';
 
 export const Header: React.FC = () => {
-  const { addToast } = useExam();
+  const { addToast, setActiveTab, activeTab } = useExam();
   const [isDark, setIsDark] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -63,8 +63,28 @@ export const Header: React.FC = () => {
           </span>
         </button>
 
+        {/* Configuration Center Quick Link */}
+        <button
+          type="button"
+          aria-label="Configuration Center"
+          onClick={() => setActiveTab('settings')}
+          className={`p-2 rounded-xl transition-colors cursor-pointer ${
+            activeTab === 'settings'
+              ? 'bg-[var(--primary-light)] text-[var(--primary)] font-bold'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-main)]'
+          }`}
+          title="Configuration Center"
+        >
+          <SlidersHorizontal size={18} />
+        </button>
+
         {/* Top Right User Profile Block */}
-        <div className="flex items-center gap-2.5 pl-1.5">
+        <button
+          type="button"
+          onClick={() => setActiveTab('settings')}
+          className="flex items-center gap-2.5 pl-1.5 hover:opacity-90 transition-opacity text-left cursor-pointer"
+          title="SuperAdmin Settings"
+        >
           <div className="hidden lg:block text-right">
             <p className="text-xs font-bold text-[var(--text-primary)] leading-tight">SuperAdmin</p>
             <p className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">SUPER_ADMIN</p>
@@ -72,7 +92,7 @@ export const Header: React.FC = () => {
           <div className="w-8 h-8 rounded-full bg-[var(--primary)] text-white font-extrabold flex items-center justify-center text-xs shadow-xs ring-2 ring-[var(--primary-light)]">
             SU
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

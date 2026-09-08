@@ -1,6 +1,13 @@
 import { useState } from 'react';
-import { questionTypeLabels, bloomsTaxonomyLevels, bloomsTaxonomyColors } from '../utils/questionPool';
-import { Library, Search, Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  questionTypeLabels,
+  bloomsTaxonomyLevels,
+  bloomsTaxonomyColors,
+  questionLevels,
+  questionLevelConfig,
+  getQuestionLevel,
+} from '../utils/questionPool';
+import { Library, Search, Plus, Pencil, Trash2, Tag } from 'lucide-react';
 import { useExam } from '../context/ExamContext';
 import { AcademicTaxonomyBar, type AcademicTaxonomyValues } from './common/AcademicTaxonomyBar';
 import type { PoolQuestion } from '../types';
@@ -33,6 +40,7 @@ export function QuestionPoolBrowser({
 
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
+  const [level, setLevel] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [bloom, setBloom] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -48,12 +56,15 @@ export function QuestionPoolBrowser({
       const matchTopic = !taxonomy.topic || q.topic.toLowerCase().includes(taxonomy.topic.toLowerCase());
 
       // Secondary filters
+      const qLevel = getQuestionLevel(q);
+      const matchLevel = !level || qLevel === level;
       const matchType = !type || q.type === type;
       const matchDifficulty = !difficulty || q.difficulty === difficulty;
       const matchBloom = !bloom || q.bloomsTaxonomy === bloom;
 
       // Text query
-      const fullText = `${q.prompt} ${q.subject} ${q.topic} ${q.chapter || ''} ${q.classGrade || ''} ${q.board || ''} ${q.bloomsTaxonomy || ''}`.toLowerCase();
+      const tagText = (q.tags || []).join(' ');
+      const fullText = `${q.prompt} ${q.subject} ${q.topic} ${q.chapter || ''} ${q.classGrade || ''} ${q.board || ''} ${q.bloomsTaxonomy || ''} ${qLevel} ${tagText}`.toLowerCase();
       const matchSearch = !search.trim() || fullText.includes(search.trim().toLowerCase());
 
       return (
@@ -62,6 +73,7 @@ export function QuestionPoolBrowser({
         matchSubject &&
         matchChapter &&
         matchTopic &&
+        matchLevel &&
         matchType &&
         matchDifficulty &&
         matchBloom &&
@@ -78,6 +90,7 @@ export function QuestionPoolBrowser({
     taxonomy.topic ||
     taxonomy.board !== 'CBSE' ||
     search ||
+    level ||
     type ||
     difficulty ||
     bloom
@@ -92,6 +105,7 @@ export function QuestionPoolBrowser({
       topic: '',
     });
     setSearch('');
+    setLevel('');
     setType('');
     setDifficulty('');
     setBloom('');
@@ -121,7 +135,7 @@ export function QuestionPoolBrowser({
       </div>
 
       {/* Secondary Search & Pedagogical Filters */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.1fr_1fr_1fr_1fr]">
         <div className="relative">
           <Search size={17} className="absolute left-3 top-3 text-[var(--text-muted)]" />
           <input
@@ -132,6 +146,12 @@ export function QuestionPoolBrowser({
             className={`${control} pl-9`}
           />
         </div>
+        <select aria-label="Filter by level" value={level} onChange={e => setLevel(e.target.value)} className={control}>
+          <option value="">All levels</option>
+          {questionLevels.map(lvl => (
+            <option key={lvl} value={lvl}>{lvl} ({questionLevelConfig[lvl].defaultPoints} pt{questionLevelConfig[lvl].defaultPoints > 1 ? 's' : ''})</option>
+          ))}
+        </select>
         <select aria-label="Filter by question type" value={type} onChange={e => setType(e.target.value)} className={control}>
           <option value="">All question types</option>
           {Object.entries(questionTypeLabels).map(([val, label]) => (
@@ -158,6 +178,7 @@ export function QuestionPoolBrowser({
           {filtered.length} matching question{filtered.length === 1 ? '' : 's'}
           {taxonomy.subject ? ` in ${taxonomy.subject}` : ''}
           {taxonomy.chapter ? ` · ${taxonomy.chapter}` : ''}
+          {level ? ` · ${level}` : ''}
         </span>
         {hasAnyFilter && (
           <button
@@ -174,11 +195,23 @@ export function QuestionPoolBrowser({
       {filtered.map(q => {
         const added = usedIds.includes(q.id);
         const bloomColor = q.bloomsTaxonomy ? bloomsTaxonomyColors[q.bloomsTaxonomy] : null;
+        const qLvl = getQuestionLevel(q);
+        const lvlMeta = questionLevelConfig[qLvl];
         return <article key={q.id} className={`rounded-xl border p-4 transition-colors ${selected.includes(q.id) && !added ? 'border-[var(--primary)] bg-[var(--primary-light)]/20' : 'border-[var(--border-color)] bg-[var(--bg-card)]'}`}>
           <div className="flex items-start gap-3">
             {onAdd && <input type="checkbox" aria-label={`Select question: ${q.prompt}`} disabled={added} checked={added || selected.includes(q.id)} onChange={e => setSelected(prev => e.target.checked ? [...prev, q.id] : prev.filter(id => id !== q.id))} className="mt-1 h-4 w-4 shrink-0 accent-orange-500 cursor-pointer" />}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
+                {/* Level 1, 2, 3 [tag] - point badge */}
+                <span
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-black border ${lvlMeta.badgeClass} flex items-center gap-1 shadow-2xs`}
+                  title={`${lvlMeta.description} · Default ${lvlMeta.defaultPoints} pt`}
+                >
+                  <span>{qLvl}</span>
+                  <span className="opacity-60 font-semibold">·</span>
+                  <span>{q.marks || lvlMeta.defaultPoints} pt{(q.marks || lvlMeta.defaultPoints) === 1 ? '' : 's'}</span>
+                </span>
+
                 <span className="rounded bg-[var(--bg-main)] px-2 py-0.5 text-[var(--text-primary)] font-medium border border-[var(--border-color)]">
                   {questionTypeLabels[q.type as keyof typeof questionTypeLabels] || q.type}
                 </span>
@@ -200,13 +233,24 @@ export function QuestionPoolBrowser({
                 <span>{q.subject}</span>
                 {q.chapter && <span>· {q.chapter}</span>}
                 <span>· {q.difficulty}</span>
-                <span>· {q.marks} marks</span>
                 {added && <span className="text-[var(--status-success-text)] font-semibold">Added to assessment</span>}
               </div>
               <p className="mt-2 text-sm font-semibold whitespace-pre-wrap break-words text-[var(--text-primary)]">{q.prompt}</p>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                {q.topic ? `Topic: ${q.topic}` : ''}
-              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                {q.topic ? <span className="text-xs text-[var(--text-secondary)]">Topic: {q.topic}</span> : null}
+                {q.tags && q.tags.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    {q.tags.map((t, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 text-[10px] font-semibold"
+                      >
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <details className="mt-3 text-sm"><summary className="cursor-pointer text-[var(--primary)] font-medium">View answer & details</summary><div className="mt-2 rounded-lg bg-[var(--bg-main)] p-3 space-y-2 text-[var(--text-primary)] border border-[var(--border-color)]">
                 {q.options?.map((option, i) => <p key={i}>{option}{(q.type === 'mcq' ? q.correctOptionIndex === i : q.correctOptionIndices?.includes(i)) && <span className="text-[var(--status-success-text)] font-semibold"> ✓ Correct</span>}</p>)}
                 {q.blankSlots?.map(slot => <p key={slot.id}>{slot.sentencePrefix} <strong>{slot.correctAnswer}</strong> {slot.sentenceSuffix}</p>)}

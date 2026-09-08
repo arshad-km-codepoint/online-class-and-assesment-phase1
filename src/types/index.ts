@@ -1050,6 +1050,8 @@ export interface LiveAssessmentSection {
   description?: string;
 }
 
+export type QuestionLevel = 'Level 1' | 'Level 2' | 'Level 3' | 'Level 4';
+
 export interface LiveAssessmentQuestion {
   id: string;
   sectionId?: string;
@@ -1059,6 +1061,8 @@ export interface LiveAssessmentQuestion {
   marks: number;
   explanation?: string;
   bloomsTaxonomy?: BloomsTaxonomyLevel;
+  level?: QuestionLevel;
+  tags?: string[];
   // MCQ fields (Single Choice)
   options?: string[];
   correctOptionIndex?: number;
@@ -1080,6 +1084,18 @@ export interface LiveAssessmentQuestion {
   // Short Answer fields
   sampleAnswer?: string;
   keywords?: string[];
+  allowStudentUpload?: boolean;
+  studentUploadInstructions?: string;
+}
+
+export interface StudentQuestionAttachment {
+  id: string;
+  name: string;
+  size: string;
+  type: string; // 'image' | 'pdf' | 'doc' | string
+  url?: string;
+  previewUrl?: string;
+  uploadedAt: string;
 }
 
 export interface LiveStudentAnswer {
@@ -1092,6 +1108,10 @@ export interface LiveStudentAnswer {
   textAnswer?: string;
   isAutoCorrect?: boolean;
   scoreAwarded?: number;
+  uploadedFiles?: StudentQuestionAttachment[];
+  isOverridden?: boolean;
+  teacherOverriddenScore?: number;
+  overrideReason?: string;
 }
 
 export interface LiveAssessmentSubmission {
@@ -1142,6 +1162,28 @@ export interface StudentSmartCard {
   cardColor?: string;
 }
 
+export type LiveStudentProgressStatus = 'submitted' | 'in_progress' | 'not_started';
+
+export interface LiveStudentProgressRecord {
+  studentId: string;
+  studentName: string;
+  rollNo: string;
+  avatar: string;
+  status: LiveStudentProgressStatus;
+  currentQuestionIndex: number;
+  answeredQuestionsCount: number;
+  totalQuestionsCount: number;
+  startedAt?: string;
+  lastActiveTime?: string;
+  timeSpentSeconds?: number;
+  isNfcVerified?: boolean;
+  isFaceVerified?: boolean;
+  uploadedFiles: StudentQuestionAttachment[];
+  submissionId?: string;
+  totalScore?: number;
+  percentage?: number;
+}
+
 export interface LiveInClassAssessment {
   id: string;
   classId?: string;
@@ -1163,9 +1205,8 @@ export interface LiveInClassAssessment {
   sections?: LiveAssessmentSection[];
   questions: LiveAssessmentQuestion[];
   submissions: LiveAssessmentSubmission[];
+  liveProgress?: LiveStudentProgressRecord[];
 }
-
-
 
 export interface PoolQuestion extends LiveAssessmentQuestion {
   board?: string;
@@ -1175,5 +1216,7 @@ export interface PoolQuestion extends LiveAssessmentQuestion {
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard";
   bloomsTaxonomy?: BloomsTaxonomyLevel;
+  level?: QuestionLevel;
+  tags?: string[];
 }
 

@@ -10,6 +10,7 @@ import {
   CalendarPlus,
   GraduationCap,
   Sparkles,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useExam } from '../../context/ExamContext';
 import type { ActiveNavTab } from '../../types';
@@ -82,6 +83,16 @@ export const Sidebar: React.FC = () => {
               id: 'create-class-assessment',
               label: 'Create Assessment',
               icon: <PlusCircle size={17} />,
+            },
+          ],
+        },
+        {
+          category: 'GOVERNANCE & SYSTEM',
+          items: [
+            {
+              id: 'settings',
+              label: 'Configuration',
+              icon: <SlidersHorizontal size={17} />,
             },
           ],
         },

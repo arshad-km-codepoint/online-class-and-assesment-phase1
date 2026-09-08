@@ -16,6 +16,7 @@ import { LiveClassroomView } from './views/LiveClassroomView';
 
 // Parent & Student Views
 import { StudentOnlineClassesView } from './views/StudentOnlineClassesView';
+import { ConfigurationCenterView } from './views/ConfigurationCenterView';
 
 import { ShareAssessmentModal } from './components/modals/ShareAssessmentModal';
 import { StudentIdentityVerificationModal } from './components/modals/StudentIdentityVerificationModal';
@@ -55,6 +56,9 @@ const MainContent: React.FC = () => {
 
               {/* Parent & Student Views */}
               {activeTab === 'student-online-classes' && <StudentOnlineClassesView />}
+
+              {/* System & Configuration Center */}
+              {activeTab === 'settings' && <ConfigurationCenterView />}
             </main>
           </div>
         </div>
