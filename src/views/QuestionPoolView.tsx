@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, ArrowLeft, Save, Trash2, AlertCircle, Tag, X } from 'lucide-react';
+import { Plus, ArrowLeft, Save, Trash2, AlertCircle, Tag, X, Sparkles } from 'lucide-react';
 import { useExam } from '../context/ExamContext';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { QuestionPoolBrowser } from '../components/QuestionPoolBrowser';
+import { AIQuestionGenerator } from '../components/AIQuestionGenerator';
 import {
   questionTypeLabels,
   bloomsTaxonomyLevels,
@@ -46,6 +47,7 @@ function newQuestion(type: LiveAssessmentQuestionType = 'mcq'): PoolQuestion {
 
 export function QuestionPoolView() {
   const { savePoolQuestion, deletePoolQuestion, addToast, questionPool, setActiveTab } = useExam();
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
   const [draft, setDraft] = useState<PoolQuestion | null>(null);
   const [deleting, setDeleting] = useState<PoolQuestion | null>(null);
   const [error, setError] = useState('');
@@ -115,6 +117,23 @@ export function QuestionPoolView() {
 
   const isEditingExisting = draft && questionPool.some(q => q.id === draft.id);
 
+  if (showAIGenerator) {
+    return (
+      <PageWrapper
+        breadcrumbs={[
+          { label: 'Dashboard', onClick: () => setActiveTab('dashboard') },
+          { label: 'Question Pool', onClick: () => setShowAIGenerator(false) },
+          { label: 'AI Question Generator', active: true },
+        ]}
+        title="Quick Question Paper Generator"
+        subtitle="Configure syllabus criteria, question types, and taxonomy levels to auto-generate curriculum-aligned questions."
+        onBack={() => setShowAIGenerator(false)}
+      >
+        <AIQuestionGenerator onClose={() => setShowAIGenerator(false)} />
+      </PageWrapper>
+    );
+  }
+
   return (
     <PageWrapper
       breadcrumbs={[
@@ -126,14 +145,24 @@ export function QuestionPoolView() {
       subtitle={draft ? 'Include the answer key so the question is ready for an assessment.' : 'Build once. Reuse in any assessment. Saved in this browser.'}
       onBack={draft ? () => setDraft(null) : undefined}
       actions={!draft ? (
-        <button
-          type="button"
-          onClick={() => edit(newQuestion())}
-          className="inline-flex items-center gap-2 rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm focus:outline-none focus:ring-4 focus:ring-orange-200 cursor-pointer"
-        >
-          <Plus size={17} />
-          Create Question
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowAIGenerator(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-orange-300 dark:border-orange-700/60 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2 text-sm font-semibold transition-all shadow-sm focus:outline-none focus:ring-4 focus:ring-orange-200 cursor-pointer"
+          >
+            <Sparkles size={16} className="text-amber-100" />
+            Generate with AI
+          </button>
+          <button
+            type="button"
+            onClick={() => edit(newQuestion())}
+            className="inline-flex items-center gap-2 rounded-xl bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm focus:outline-none focus:ring-4 focus:ring-orange-200 cursor-pointer"
+          >
+            <Plus size={17} />
+            Create Question
+          </button>
+        </div>
       ) : undefined}
     >
       {!draft ? (
@@ -512,63 +541,8 @@ export function QuestionPoolView() {
                     );
                   })()}
 
-                  {/* Level 1, 2, 3 [tag] - point Selector */}
-                  <div className="space-y-2 pt-2 border-t border-[var(--border-color)]">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold tracking-wide text-[var(--text-primary)]">
-                        Question Tier / Level <span className="text-red-500 font-semibold">*</span>
-                      </label>
-                      <span className="text-[11px] text-[var(--text-muted)] font-medium">
-                        Level sets default points
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {questionLevels.map((lvl) => {
-                        const meta = questionLevelConfig[lvl];
-                        const isSelected = (draft.level || getQuestionLevel(draft)) === lvl;
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            onClick={() => {
-                              update({
-                                level: lvl,
-                                marks: meta.defaultPoints,
-                                difficulty: meta.difficulty,
-                              });
-                            }}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
-                              isSelected
-                                ? `${meta.activeRing} shadow-xs ring-2`
-                                : 'border-[var(--border-color)] bg-[var(--bg-main)] hover:border-slate-400 dark:hover:border-slate-600'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-1 mb-1">
-                              <span
-                                className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-black border ${
-                                  isSelected
-                                    ? meta.badgeClass
-                                    : 'bg-[var(--bg-card)] text-[var(--text-primary)] border-[var(--border-color)]'
-                                }`}
-                              >
-                                {lvl}
-                              </span>
-                              <span className="text-[11px] font-extrabold text-[var(--primary)]">
-                                {meta.defaultPoints} pt{meta.defaultPoints > 1 ? 's' : ''}
-                              </span>
-                            </div>
-                            <span className="text-[10px] leading-tight text-[var(--text-secondary)] font-medium line-clamp-1">
-                              {meta.difficulty}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   {/* Marks / Points & Difficulty refinement */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[var(--border-color)]">
                     <label className="block text-xs font-medium tracking-wide text-[var(--text-secondary)]">
                       Marks / Points <span className="text-red-500 font-semibold">*</span>
                       <input
@@ -607,6 +581,26 @@ export function QuestionPoolView() {
                       {bloomsTaxonomyLevels.map((value) => (
                         <option key={value} value={value}>
                           {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {/* Question Tier / Level Dropdown */}
+                  <label className="block text-xs font-medium tracking-wide text-[var(--text-secondary)]">
+                    Question Tier / Level <span className="text-red-500 font-semibold">*</span>
+                    <select
+                      required
+                      aria-label="Question Tier / Level"
+                      className={control}
+                      value={draft.level || getQuestionLevel(draft)}
+                      onChange={(e) => {
+                        update({ level: e.target.value as QuestionLevel });
+                      }}
+                    >
+                      {questionLevels.map((lvl) => (
+                        <option key={lvl} value={lvl}>
+                          {lvl}
                         </option>
                       ))}
                     </select>

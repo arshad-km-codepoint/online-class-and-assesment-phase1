@@ -271,6 +271,7 @@ interface ExamContextType {
   // Live In-Class Assessment & Interactive Quizzes
   questionPool: PoolQuestion[];
   savePoolQuestion: (question: PoolQuestion) => boolean;
+  savePoolQuestions: (questions: PoolQuestion[]) => boolean;
   deletePoolQuestion: (id: string) => boolean;
   liveAssessments: LiveInClassAssessment[];
   activeLiveAssessment: LiveInClassAssessment | null;
@@ -638,6 +639,11 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? questionPool.map(q => q.id === question.id ? structuredClone(question) : q)
       : [structuredClone(question), ...questionPool]
   );
+  const savePoolQuestions = (questions: PoolQuestion[]) => {
+    const ids = new Set(questions.map(q => q.id));
+    const next = [...questions.map(q => structuredClone(q)), ...questionPool.filter(q => !ids.has(q.id))];
+    return persistQuestionPool(next);
+  };
   const deletePoolQuestion = (id: string) => persistQuestionPool(questionPool.filter(q => q.id !== id));
 
   const [liveAssessments, setLiveAssessments] = useState<LiveInClassAssessment[]>(initialLiveAssessments);
@@ -1949,6 +1955,7 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Live In-Class Assessment
         questionPool,
         savePoolQuestion,
+        savePoolQuestions,
         deletePoolQuestion,
         liveAssessments,
         activeLiveAssessment,
