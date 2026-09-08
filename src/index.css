@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
 :root {
   /* ================= Brand & Primary ================= */
   --primary: #f39223;               /* Warm Orange / Amber */
@@ -45,7 +47,8 @@
   --status-error-icon-bg: #fee2e2;
 }
 
-[data-theme='dark'] {
+[data-theme='dark'],
+.dark {
   /* ================= Dark Mode Brand ================= */
   --primary: #f39223;
   --primary-light: #2d1a0b;

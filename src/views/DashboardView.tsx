@@ -117,7 +117,7 @@ export const DashboardView: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('create-online-class')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black/20 hover:bg-black/30 text-white font-semibold text-sm border border-white/25 backdrop-blur-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-sm border border-white/30 backdrop-blur-sm transition-all cursor-pointer shadow-xs"
             >
               <CalendarPlus className="w-4 h-4" />
               <span>Schedule Class</span>
@@ -126,7 +126,7 @@ export const DashboardView: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('create-class-assessment')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-black/20 hover:bg-black/30 text-white font-semibold text-sm border border-white/25 backdrop-blur-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-sm border border-white/30 backdrop-blur-sm transition-all cursor-pointer shadow-xs"
             >
               <Plus className="w-4 h-4" />
               <span>New Assessment</span>
@@ -190,13 +190,13 @@ export const DashboardView: React.FC = () => {
         {/* Card 1: Online Classes */}
         <div
           onClick={() => setActiveTab('online-classes')}
-          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 ring-1 ring-amber-200/70 dark:ring-amber-800/60 flex items-center justify-center">
               <Video className="w-5 h-5" />
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-800">
               <TrendingUp className="w-3 h-3" />
               <span>Active</span>
             </span>
@@ -209,12 +209,12 @@ export const DashboardView: React.FC = () => {
               <span className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
                 {onlineClasses.length}
               </span>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 ({liveClasses.length} live, {scheduledClasses.length} upcoming)
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-semibold text-[var(--primary)] group-hover:underline">
+          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-bold text-[var(--primary)] group-hover:underline">
             <span>Manage classes</span>
             <ChevronRight className="w-4 h-4" />
           </div>
@@ -223,13 +223,13 @@ export const DashboardView: React.FC = () => {
         {/* Card 2: Interactive Assessments */}
         <div
           onClick={() => setActiveTab('online-class-assessments')}
-          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 ring-1 ring-blue-200/70 dark:ring-blue-800/60 flex items-center justify-center">
               <ClipboardCheck className="w-5 h-5" />
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-full border border-blue-200/80 dark:border-blue-800">
               <span>{activeAssessments.length} Active</span>
             </span>
           </div>
@@ -241,12 +241,12 @@ export const DashboardView: React.FC = () => {
               <span className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
                 {liveAssessments.length}
               </span>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 ({totalSubmissions} submissions)
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-semibold text-[var(--primary)] group-hover:underline">
+          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-bold text-[var(--primary)] group-hover:underline">
             <span>Review assessments</span>
             <ChevronRight className="w-4 h-4" />
           </div>
@@ -255,13 +255,13 @@ export const DashboardView: React.FC = () => {
         {/* Card 3: Question Pool */}
         <div
           onClick={() => setActiveTab('question-pool')}
-          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 ring-1 ring-purple-200/70 dark:ring-purple-800/60 flex items-center justify-center">
               <Library className="w-5 h-5" />
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2.5 py-0.5 rounded-full border border-purple-200/80 dark:border-purple-800">
               <span>5 Types</span>
             </span>
           </div>
@@ -273,12 +273,12 @@ export const DashboardView: React.FC = () => {
               <span className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
                 {questionPool.length}
               </span>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 ready items
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-semibold text-[var(--primary)] group-hover:underline">
+          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-bold text-[var(--primary)] group-hover:underline">
             <span>Browse question pool</span>
             <ChevronRight className="w-4 h-4" />
           </div>
@@ -287,13 +287,13 @@ export const DashboardView: React.FC = () => {
         {/* Card 4: Enrolled Students */}
         <div
           onClick={() => setActiveTab('online-classes')}
-          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+          className="group bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 ring-1 ring-emerald-200/70 dark:ring-emerald-800/60 flex items-center justify-center">
               <Users className="w-5 h-5" />
             </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-800">
               <span>96% Attn</span>
             </span>
           </div>
@@ -305,12 +305,12 @@ export const DashboardView: React.FC = () => {
               <span className="text-2xl sm:text-3xl font-black text-[var(--text-primary)]">
                 {totalEnrolled}
               </span>
-              <span className="text-xs font-semibold text-[var(--text-muted)]">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 enrolled across classes
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-semibold text-[var(--primary)] group-hover:underline">
+          <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-bold text-[var(--primary)] group-hover:underline">
             <span>View attendance</span>
             <ChevronRight className="w-4 h-4" />
           </div>
@@ -471,7 +471,7 @@ export const DashboardView: React.FC = () => {
                         className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                           isAssActive
                             ? 'bg-blue-500 text-white animate-pulse'
-                            : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
                         }`}
                       >
                         <ClipboardCheck className="w-4 h-4" />
@@ -547,7 +547,7 @@ export const DashboardView: React.FC = () => {
           <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-sm p-5 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/50 text-purple-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 flex items-center justify-center">
                   <Library className="w-4 h-4" />
                 </div>
                 <div>

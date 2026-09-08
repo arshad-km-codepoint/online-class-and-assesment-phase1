@@ -5,14 +5,23 @@ import { useExam } from '../../context/ExamContext';
 export const Header: React.FC = () => {
   const { addToast } = useExam();
   const [isDark, setIsDark] = useState<boolean>(() => {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return (
+      document.documentElement.getAttribute('data-theme') === 'dark' ||
+      document.documentElement.classList.contains('dark')
+    );
   });
 
   useEffect(() => {
     if (isDark) {
       document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.removeAttribute('data-theme');
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
 
