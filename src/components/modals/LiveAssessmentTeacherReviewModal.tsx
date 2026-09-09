@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useExam } from '../../context/ExamContext';
 import {
   Zap,
@@ -31,6 +31,9 @@ import {
   CheckSquare,
   Search,
   ArrowUpRight,
+  LayoutGrid,
+  Columns3,
+  ArrowRight,
   Maximize2,
 } from 'lucide-react';
 import {
@@ -181,8 +184,25 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
   // View Modes: Live Monitor Grid vs Detailed Question Grading vs Class Attachments Gallery
   const [activeViewTab, setActiveViewTab] = useState<'monitor' | 'grading' | 'attachments'>('monitor');
   const [progressFilter, setProgressFilter] = useState<'all' | 'submitted' | 'in_progress' | 'not_started'>('all');
+  const [viewDensity, setViewDensity] = useState<'compact' | 'detailed'>('compact');
   const [searchStudentQuery, setSearchStudentQuery] = useState<string>('');
   const [selectedAttachmentQuestionFilter, setSelectedAttachmentQuestionFilter] = useState<string>('all');
+  const [submissionSearchQuery, setSubmissionSearchQuery] = useState<string>('');
+
+  // Hover Popover State for Compact 30+ Mode
+  const [hoveredStudent, setHoveredStudent] = useState<{
+    student: LiveStudentProgressRecord;
+    rect: DOMRect;
+  } | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
 
   // Candidate progress list combining liveProgress or generating from submissions
   const allProgressList: LiveStudentProgressRecord[] = activeLiveAssessment.liveProgress || [
@@ -203,7 +223,14 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
       submissionId: s.id,
       totalScore: s.totalScore,
       percentage: s.percentage,
-      uploadedFiles: Object.values(s.answers).flatMap((a) => a.uploadedFiles || []),
+      uploadedFiles: Array.from(
+        new Map(
+          [
+            ...(s.attachments || []),
+            ...Object.values(s.answers).flatMap((a) => a.uploadedFiles || []),
+          ].map((att) => [att.id, att])
+        ).values()
+      ),
     })),
   ];
 
@@ -227,16 +254,32 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
     // Check submission answers
     const sub = activeLiveAssessment.submissions.find((s) => s.studentId === student.studentId);
     if (sub) {
-      activeLiveAssessment.questions.forEach((q, qIdx) => {
-        const ans = sub.answers[q.id];
-        ans?.uploadedFiles?.forEach((att) => {
+      const seenAttIds = new Set<string>();
+      sub.attachments?.forEach((att) => {
+        if (!seenAttIds.has(att.id)) {
+          seenAttIds.add(att.id);
           allClassAttachments.push({
             student,
             attachment: att,
-            questionNumber: qIdx + 1,
-            questionPrompt: q.prompt,
-            questionId: q.id,
+            questionNumber: 0,
+            questionPrompt: 'Assessment Rough Work & Solutions Sheet',
+            questionId: 'overall-attachments',
           });
+        }
+      });
+      activeLiveAssessment.questions.forEach((q, qIdx) => {
+        const ans = sub.answers[q.id];
+        ans?.uploadedFiles?.forEach((att) => {
+          if (!seenAttIds.has(att.id)) {
+            seenAttIds.add(att.id);
+            allClassAttachments.push({
+              student,
+              attachment: att,
+              questionNumber: qIdx + 1,
+              questionPrompt: q.prompt,
+              questionId: q.id,
+            });
+          }
         });
       });
     } else {
@@ -300,8 +343,8 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden text-slate-900 dark:text-slate-100">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-3 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-[98vw] 2xl:max-w-[1720px] h-[95vh] max-h-[96vh] flex flex-col overflow-hidden text-slate-900 dark:text-slate-100">
         {/* Top Header Bar */}
         <div className="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -422,54 +465,54 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
           </div>
         </div>
 
-        {/* 4 Quick Metrics Pill Strip */}
-        <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
-          <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+        {/* 4 Quick Metrics Pill Strip - Compact */}
+        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+          <div className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
                 Submitted Submissions
               </span>
-              <p className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
+              <p className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 leading-tight">
                 {submittedCount} / {totalLearnersCount} Students
               </p>
             </div>
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           </div>
 
-          <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+          <div className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
                 Currently In-Progress
               </span>
-              <p className="text-lg sm:text-xl font-black text-[#f39223]">
+              <p className="text-sm sm:text-base font-black text-[#f39223] leading-tight">
                 {inProgressCount} Actively Answering
               </p>
             </div>
-            <Zap className="w-5 h-5 text-amber-500 animate-pulse" />
+            <Zap className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
           </div>
 
-          <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+          <div className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
                 Class Average (Score)
               </span>
-              <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+              <p className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
                 {avgScore} / {activeLiveAssessment.totalMarks} ({avgPercentage}%)
               </p>
             </div>
-            <TrendingUp className="w-5 h-5 text-purple-500" />
+            <TrendingUp className="w-4 h-4 text-purple-500 shrink-0" />
           </div>
 
-          <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+          <div className="px-3 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
                 Student Uploads Attached
               </span>
-              <p className="text-lg sm:text-xl font-black text-indigo-600 dark:text-indigo-400">
+              <p className="text-sm sm:text-base font-black text-indigo-600 dark:text-indigo-400 leading-tight">
                 {allClassAttachments.length} Rough Sheets
               </p>
             </div>
-            <Paperclip className="w-5 h-5 text-indigo-500" />
+            <Paperclip className="w-4 h-4 text-indigo-500 shrink-0" />
           </div>
         </div>
 
@@ -477,14 +520,14 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
         {activeViewTab === 'monitor' && (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950/40">
             {/* Filter & Live Search Toolbar */}
-            <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div className="p-2.5 px-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
-                  <Filter className="w-3.5 h-3.5" /> Filter Status:
+                  <Filter className="w-3.5 h-3.5" /> Filter:
                 </span>
                 <button
                   onClick={() => setProgressFilter('all')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     progressFilter === 'all'
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
@@ -494,7 +537,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                 </button>
                 <button
                   onClick={() => setProgressFilter('submitted')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     progressFilter === 'submitted'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
@@ -505,7 +548,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                 </button>
                 <button
                   onClick={() => setProgressFilter('in_progress')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     progressFilter === 'in_progress'
                       ? 'bg-[#f39223] text-white shadow-xs'
                       : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
@@ -516,7 +559,7 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                 </button>
                 <button
                   onClick={() => setProgressFilter('not_started')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     progressFilter === 'not_started'
                       ? 'bg-slate-600 text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
@@ -527,27 +570,230 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                 </button>
               </div>
 
-              <div className="relative w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchStudentQuery}
-                  onChange={(e) => setSearchStudentQuery(e.target.value)}
-                  placeholder="Search student or roll no..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
-                />
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative w-56">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchStudentQuery}
+                    onChange={(e) => setSearchStudentQuery(e.target.value)}
+                    placeholder="Search student or roll no..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#f39223]"
+                  />
+                </div>
+
+                {/* View Density Toggle (Compact 30+ Grid vs Detailed) */}
+                <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setViewDensity('compact')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      viewDensity === 'compact'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title="Compact 30+ Grid: View full class in single window"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Compact (30+ Grid)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewDensity('detailed')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      viewDensity === 'detailed'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title="Detailed Cards View"
+                  >
+                    <Columns3 className="w-3.5 h-3.5" />
+                    <span>Detailed</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Live Cards Grid */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              <div
+                className={
+                  viewDensity === 'compact'
+                    ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-2 sm:gap-2.5'
+                    : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+                }
+              >
                 {filteredProgressList.map((item) => {
                   const percentComplete = Math.round((item.answeredQuestionsCount / item.totalQuestionsCount) * 100);
                   const isSubmitted = item.status === 'submitted';
                   const isInProgress = item.status === 'in_progress';
                   const isNotStarted = item.status === 'not_started';
 
+                  // --- Compact View (Optimized for 30+ Students in a Single Window) ---
+                  if (viewDensity === 'compact') {
+                    return (
+                      <div
+                        key={item.studentId}
+                        onClick={() => {
+                          if (item.submissionId) {
+                            setSelectedSubmissionId(item.submissionId);
+                            setActiveViewTab('grading');
+                          }
+                        }}
+                        onMouseEnter={(e) => {
+                          if (viewDensity !== 'compact') return;
+                          if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                          hoverTimeoutRef.current = setTimeout(() => {
+                            setHoveredStudent({ student: item, rect });
+                          }, 160);
+                        }}
+                        onMouseLeave={() => {
+                          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                          closeTimeoutRef.current = setTimeout(() => {
+                            setHoveredStudent(null);
+                          }, 160);
+                        }}
+                        className={`rounded-xl border p-2.5 flex flex-col justify-between transition-all duration-150 relative ${
+                          isSubmitted && item.submissionId
+                            ? 'cursor-pointer hover:border-emerald-500 hover:shadow-md hover:scale-[1.01]'
+                            : ''
+                        } ${
+                          isSubmitted
+                            ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-800/60 shadow-xs'
+                            : isInProgress
+                            ? 'bg-white dark:bg-slate-900 border-amber-300 dark:border-amber-700/60 ring-1 ring-amber-400/20 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-75'
+                        }`}
+                      >
+                        {/* Top Info: Avatar, Name, Roll & Score/Status */}
+                        <div className="flex items-center justify-between gap-1.5 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="relative shrink-0">
+                              <img
+                                src={item.avatar}
+                                alt={item.studentName}
+                                className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                              />
+                              {isInProgress && (
+                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                                  <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                                </span>
+                              )}
+                              {isSubmitted && (
+                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                                  <Check className="w-1.5 h-1.5 text-white" />
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white truncate leading-tight">
+                                {item.studentName}
+                              </h4>
+                              <p className="text-[10px] text-slate-400 font-mono truncate leading-none mt-0.5">
+                                #{item.rollNo}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isSubmitted ? (
+                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/60 flex items-center gap-0.5">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                                <span>{item.totalScore !== undefined ? `${item.totalScore}m` : 'Done'}</span>
+                              </span>
+                            ) : isInProgress ? (
+                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/60 flex items-center gap-0.5 animate-pulse">
+                                <Zap className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                                <span>Q{(item.currentQuestionIndex || 0) + 1}</span>
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                Wait
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Middle: 5-segment Question Progress Bar */}
+                        <div className="my-1.5 space-y-1">
+                          <div className="flex items-center gap-1">
+                            {activeLiveAssessment.questions.map((q, qIndex) => {
+                              const isAnswered = qIndex < item.answeredQuestionsCount;
+                              const isCurrent = qIndex === item.currentQuestionIndex && isInProgress;
+                              return (
+                                <div
+                                  key={q.id}
+                                  className={`h-1.5 flex-1 rounded-full transition-all ${
+                                    isAnswered
+                                      ? 'bg-emerald-500'
+                                      : isCurrent
+                                      ? 'bg-amber-500 animate-pulse ring-1 ring-amber-400'
+                                      : 'bg-slate-200 dark:bg-slate-700'
+                                  }`}
+                                  title={`Q${qIndex + 1}: ${isAnswered ? 'Answered' : isCurrent ? 'Answering' : 'Pending'}`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            <span className="truncate">
+                              {isSubmitted
+                                ? 'Completed'
+                                : isInProgress
+                                ? `${item.answeredQuestionsCount}/${item.totalQuestionsCount} (${percentComplete}%)`
+                                : '0/5 answered'}
+                            </span>
+                            {isSubmitted && item.percentage !== undefined && (
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                                {item.percentage}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom: Workings count & Quick Action */}
+                        <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                          <div className="flex items-center gap-1 text-slate-400 truncate">
+                            {item.uploadedFiles && item.uploadedFiles.length > 0 ? (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveViewTab('attachments');
+                                }}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition-colors cursor-pointer"
+                                title="View candidate rough sheets in gallery"
+                              >
+                                <Paperclip className="w-2.5 h-2.5" />
+                                <span>{item.uploadedFiles.length} Sheet{item.uploadedFiles.length > 1 ? 's' : ''}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-slate-400 truncate">
+                                {item.lastActiveTime && isSubmitted ? 'Submitted' : isInProgress ? 'Active now' : 'Idle'}
+                              </span>
+                            )}
+                          </div>
+
+                          {isSubmitted && item.submissionId ? (
+                            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex items-center gap-0.5">
+                              <span>Grade</span>
+                              <ArrowRight className="w-2.5 h-2.5" />
+                            </span>
+                          ) : isInProgress ? (
+                            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                              <span>Live</span>
+                            </span>
+                          ) : (
+                            <span className="text-[9px] text-slate-400">Offline</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // --- Detailed View (Original Detailed Card Layout) ---
                   return (
                     <div
                       key={item.studentId}
@@ -732,6 +978,212 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                 })}
               </div>
             </div>
+
+            {/* Floating Detailed Card Popover on Hover (Compact 30+ View) */}
+            {viewDensity === 'compact' && hoveredStudent && (() => {
+              const hItem = hoveredStudent.student;
+              const percentComplete = Math.round((hItem.answeredQuestionsCount / hItem.totalQuestionsCount) * 100);
+              const isSubmitted = hItem.status === 'submitted';
+              const isInProgress = hItem.status === 'in_progress';
+              const isNotStarted = hItem.status === 'not_started';
+
+              const rect = hoveredStudent.rect;
+              const cardWidth = 340;
+              const placeRight = rect.right + cardWidth + 16 <= window.innerWidth;
+              const left = placeRight ? rect.right + 10 : Math.max(12, rect.left - cardWidth - 10);
+              const top = Math.max(16, Math.min(rect.top - 12, window.innerHeight - 440));
+
+              return (
+                <div
+                  onMouseEnter={() => {
+                    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+                  }}
+                  onMouseLeave={() => {
+                    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                    closeTimeoutRef.current = setTimeout(() => {
+                      setHoveredStudent(null);
+                    }, 160);
+                  }}
+                  style={{
+                    position: 'fixed',
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    width: `${cardWidth}px`,
+                    zIndex: 9999,
+                  }}
+                  className="rounded-2xl border border-slate-200/90 dark:border-slate-700/90 bg-white/98 dark:bg-slate-900/98 backdrop-blur-md shadow-2xl p-4 space-y-3 pointer-events-auto transition-all animate-in fade-in zoom-in-95 duration-150 ring-1 ring-black/5 dark:ring-white/10"
+                >
+                  {/* Top Bar: Avatar, Name, Roll, Auth, Status */}
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative shrink-0">
+                        <img
+                          src={hItem.avatar}
+                          alt={hItem.studentName}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700 shadow-xs"
+                        />
+                        {isInProgress && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                          </span>
+                        )}
+                        {isSubmitted && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                            <Check className="w-2 h-2 text-white" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                          {hItem.studentName}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-mono truncate mt-0.5">
+                          Roll: #{hItem.rollNo} • {hItem.isNfcVerified ? 'SmartCard Verified' : hItem.isFaceVerified ? 'Biometric Face Auth' : 'Standard Auth'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {isSubmitted ? (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          Submitted
+                        </span>
+                      ) : isInProgress ? (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1 animate-pulse">
+                          <Zap className="w-3 h-3 text-amber-600" />
+                          Q{(hItem.currentQuestionIndex || 0) + 1}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Waiting
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Question Progress & 5 Step Tracker */}
+                  <div className="space-y-1.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 font-medium">Question Progress</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white">
+                        {hItem.answeredQuestionsCount} / {hItem.totalQuestionsCount} Answered ({percentComplete}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isSubmitted
+                            ? 'bg-emerald-500'
+                            : isInProgress
+                            ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                            : 'bg-slate-300'
+                        }`}
+                        style={{ width: `${percentComplete}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between pt-0.5 gap-1">
+                      {activeLiveAssessment.questions.map((q, qIndex) => {
+                        const isAnswered = qIndex < hItem.answeredQuestionsCount;
+                        const isCurrent = qIndex === hItem.currentQuestionIndex && isInProgress;
+                        return (
+                          <div
+                            key={q.id}
+                            className={`flex-1 text-[9px] font-bold py-0.5 rounded text-center transition-all ${
+                              isAnswered
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                : isCurrent
+                                ? 'bg-amber-500 text-white animate-pulse font-extrabold'
+                                : 'bg-slate-200/80 dark:bg-slate-800 text-slate-400'
+                            }`}
+                            title={`Q${qIndex + 1}: ${q.prompt}`}
+                          >
+                            Q{qIndex + 1}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Telemetry & Auto-Evaluated Score */}
+                  <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800/80 text-[11px] space-y-1">
+                    <div className="flex items-center justify-between text-slate-500">
+                      <span>Telemetry:</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        {hItem.lastActiveTime || 'Waiting for candidate...'}
+                      </span>
+                    </div>
+                    {isSubmitted && hItem.totalScore !== undefined && (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-700/60 font-bold">
+                        <span className="text-slate-500">Auto-Evaluated Score:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {hItem.totalScore} / {activeLiveAssessment.totalMarks} Marks ({hItem.percentage}%)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rough Work / Attachments Preview */}
+                  <div className="space-y-1">
+                    {hItem.uploadedFiles && hItem.uploadedFiles.length > 0 ? (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" />
+                          Attached Rough Workings ({hItem.uploadedFiles.length})
+                        </span>
+                        <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                          {hItem.uploadedFiles.map((att) => (
+                            <a
+                              key={att.id}
+                              href={att.previewUrl || att.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1 truncate max-w-full transition-colors cursor-pointer"
+                              title={`Inspect: ${att.name}`}
+                            >
+                              <Eye className="w-2.5 h-2.5 shrink-0" />
+                              <span className="truncate">{att.name}</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-400 italic">
+                        No rough calculation attachments uploaded yet
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="pt-0.5">
+                    {isSubmitted && hItem.submissionId ? (
+                      <button
+                        onClick={() => {
+                          setSelectedSubmissionId(hItem.submissionId!);
+                          setActiveViewTab('grading');
+                          setHoveredStudent(null);
+                        }}
+                        className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Award className="w-3.5 h-3.5 text-amber-200" />
+                        <span>Grade Submission & Review Overrides →</span>
+                      </button>
+                    ) : isInProgress ? (
+                      <div className="w-full py-1.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center justify-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                        <span>Monitoring Real-Time Inputs...</span>
+                      </div>
+                    ) : (
+                      <div className="w-full py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold text-slate-500 text-center">
+                        Awaiting student launch in lecture
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -888,22 +1340,66 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
               <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                 <span>Candidate Submissions</span>
                 <span className="text-[11px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-800 dark:text-slate-200 font-bold">
-                  {activeLiveAssessment.submissions.length} Handed In
+                  {submissionSearchQuery
+                    ? `${activeLiveAssessment.submissions.filter((s) => s.studentName.toLowerCase().includes(submissionSearchQuery.toLowerCase()) || s.rollNo.toLowerCase().includes(submissionSearchQuery.toLowerCase())).length} of ${activeLiveAssessment.submissions.length}`
+                    : `${activeLiveAssessment.submissions.length} Handed In`}
                 </span>
               </div>
 
+              {/* Submissions Search Filter */}
+              <div className="p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search candidate or roll #..."
+                    value={submissionSearchQuery}
+                    onChange={(e) => setSubmissionSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-7 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs border border-transparent focus:border-amber-400 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden transition-all placeholder:text-slate-400"
+                  />
+                  {submissionSearchQuery && (
+                    <button
+                      onClick={() => setSubmissionSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-                {activeLiveAssessment.submissions.length === 0 ? (
-                  <div className="py-12 px-4 text-center text-slate-400 space-y-2">
-                    <FileCheck className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
-                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No Submissions Found</p>
-                    <p className="text-[11px] text-slate-400">
-                      No students have submitted answers for this assessment yet.
-                    </p>
-                  </div>
-                ) : (
-                  activeLiveAssessment.submissions.map((sub) => {
+                {(() => {
+                  const filteredSubmissions = activeLiveAssessment.submissions.filter((sub) => {
+                    if (!submissionSearchQuery.trim()) return true;
+                    const q = submissionSearchQuery.toLowerCase();
+                    return (
+                      sub.studentName.toLowerCase().includes(q) ||
+                      sub.rollNo.toLowerCase().includes(q)
+                    );
+                  });
+
+                  if (filteredSubmissions.length === 0) {
+                    return (
+                      <div className="py-12 px-4 text-center text-slate-400 space-y-2">
+                        <FileCheck className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                          {submissionSearchQuery ? 'No Matching Students' : 'No Submissions Found'}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {submissionSearchQuery
+                            ? `No handed-in candidate found matching "${submissionSearchQuery}".`
+                            : 'No students have submitted answers for this assessment yet.'}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return filteredSubmissions.map((sub) => {
                     const isSelected = sub.id === (selectedSub?.id || '');
+                    const attachedFilesCount = (sub.attachments?.length || 0) +
+                      Object.values(sub.answers).reduce((acc, a) => acc + (a.uploadedFiles?.length || 0), 0);
+
                     return (
                       <button
                         key={sub.id}
@@ -912,29 +1408,51 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                           setFeedbackInput(sub.teacherFeedback || '');
                           setCustomScoreOverride(null);
                         }}
-                        className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                        className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                           isSelected
                             ? 'bg-[#f39223] text-white border-[#f39223] shadow-sm'
                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-750'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <img
-                            src={sub.avatar}
-                            alt={sub.studentName}
-                            className="w-8 h-8 rounded-full object-cover border border-white/40 shrink-0"
-                          />
+                          <div className="relative shrink-0">
+                            <img
+                              src={sub.avatar}
+                              alt={sub.studentName}
+                              className="w-8 h-8 rounded-full object-cover border border-white/40"
+                            />
+                            {sub.status === 'reviewed' && (
+                              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center">
+                                <Check className="w-1.5 h-1.5 text-white" />
+                              </span>
+                            )}
+                          </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold truncate">{sub.studentName}</p>
-                            <p className={`text-[10px] truncate ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>
-                              Roll: {sub.rollNo} • {sub.submittedAt}
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className={`text-[10px] truncate ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>
+                                #{sub.rollNo} • {sub.submittedAt.split(' ')[0]}
+                              </span>
+                              {attachedFilesCount > 0 && (
+                                <span
+                                  className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-bold ${
+                                    isSelected
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                                  }`}
+                                  title={`${attachedFilesCount} attached rough calculation sheets`}
+                                >
+                                  <Paperclip className="w-2.5 h-2.5" />
+                                  <span>{attachedFilesCount}</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
                           <span
-                            className={`text-xs font-black px-2 py-0.5 rounded-md ${
+                            className={`text-xs font-black px-2 py-0.5 rounded-md inline-block ${
                               isSelected
                                 ? 'bg-white/20 text-white'
                                 : sub.percentage >= 80
@@ -944,11 +1462,14 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                           >
                             {sub.totalScore}/{sub.maxMarks}
                           </span>
+                          <p className={`text-[9px] font-semibold mt-0.5 ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>
+                            {sub.percentage}%
+                          </p>
                         </div>
                       </button>
                     );
-                  })
-                )}
+                  });
+                })()}
               </div>
             </div>
 
@@ -1062,19 +1583,6 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                             </p>
                           )}
                         </div>
-
-                        {/* Student Uploaded Work */}
-                        <QuestionStudentUpload
-                          questionId={q.id}
-                          questionNumber={idx + 1}
-                          attachments={studentAns?.uploadedFiles || []}
-                          onAddAttachment={() => {}}
-                          onRemoveAttachment={() => {}}
-                          readOnly
-                          label="Student's Uploaded Rough Sheet / Workings"
-                          helperText="Handwritten notes & calculations submitted by candidate"
-                          accentColor="amber"
-                        />
                       </div>
                     );
                   }
@@ -1123,19 +1631,6 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                             </div>
                           </div>
                         </div>
-
-                        {/* Student Uploaded Work */}
-                        <QuestionStudentUpload
-                          questionId={q.id}
-                          questionNumber={idx + 1}
-                          attachments={studentAns?.uploadedFiles || []}
-                          onAddAttachment={() => {}}
-                          onRemoveAttachment={() => {}}
-                          readOnly
-                          label="Student's Uploaded Working Notes & Proofs"
-                          helperText="Handwritten calculation sheets & derivations"
-                          accentColor="purple"
-                        />
                       </div>
                     );
                   }
@@ -1187,19 +1682,6 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                             );
                           })}
                         </div>
-
-                        {/* Student Uploaded Work */}
-                        <QuestionStudentUpload
-                          questionId={q.id}
-                          questionNumber={idx + 1}
-                          attachments={studentAns?.uploadedFiles || []}
-                          onAddAttachment={() => {}}
-                          onRemoveAttachment={() => {}}
-                          readOnly
-                          label="Student's Uploaded Function Derivative Workings"
-                          helperText="Handwritten notes for matching pairs"
-                          accentColor="purple"
-                        />
                       </div>
                     );
                   }
@@ -1259,19 +1741,6 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                             );
                           })}
                         </div>
-
-                        {/* Student Uploaded Work */}
-                        <QuestionStudentUpload
-                          questionId={q.id}
-                          questionNumber={idx + 1}
-                          attachments={studentAns?.uploadedFiles || []}
-                          onAddAttachment={() => {}}
-                          onRemoveAttachment={() => {}}
-                          readOnly
-                          label="Student's Uploaded Identity Workings"
-                          helperText="Calculus identities scratchpad"
-                          accentColor="indigo"
-                        />
                       </div>
                     );
                   }
@@ -1483,19 +1952,6 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                             </button>
                           </div>
                         </div>
-
-                        {/* Student Uploaded Work */}
-                        <QuestionStudentUpload
-                          questionId={q.id}
-                          questionNumber={idx + 1}
-                          attachments={studentAns?.uploadedFiles || []}
-                          onAddAttachment={() => {}}
-                          onRemoveAttachment={() => {}}
-                          readOnly
-                          label="Student's Uploaded Sequential Proof Scratchpad"
-                          helperText="Step-by-step logic verification sheet"
-                          accentColor="indigo"
-                        />
                       </div>
                     );
                   }
@@ -1536,26 +1992,57 @@ const LiveAssessmentTeacherReviewModalContent: React.FC<{ assessment: LiveInClas
                             </div>
                           )}
                         </div>
-
-                        {/* Student Uploaded Work */}
-                        {studentAns?.uploadedFiles && studentAns.uploadedFiles.length > 0 && (
-                          <QuestionStudentUpload
-                            questionId={q.id}
-                            attachments={studentAns.uploadedFiles}
-                            onAddAttachment={() => {}}
-                            onRemoveAttachment={() => {}}
-                            readOnly
-                            label="Student's Uploaded Geometric Diagram / Conceptual Derivation"
-                            helperText="Visual diagram or proof attached by student"
-                            accentColor="indigo"
-                          />
-                        )}
                       </div>
                     );
                   }
 
                   return null;
                 })}
+
+                {/* Candidate's Attached Workings & Solution Sheets (Consolidated Bottom Attachment with Multiple File Support) */}
+                {(() => {
+                  const candidateAttachments = Array.from(
+                    new Map(
+                      [
+                        ...(selectedSub.attachments || []),
+                        ...Object.values(selectedSub.answers).flatMap((a) => a.uploadedFiles || []),
+                      ].map((att) => [att.id, att])
+                    ).values()
+                  );
+                  if (candidateAttachments.length === 0) return null;
+                  return (
+                    <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-amber-100 text-[#c26d15] dark:bg-amber-950/60 dark:text-amber-300">
+                            <Paperclip className="w-3.5 h-3.5" />
+                          </span>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                              <span>Candidate's Attached Rough Work & Solution Sheets</span>
+                              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 dark:bg-amber-900/60 dark:text-amber-200 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                                {candidateAttachments.length} {candidateAttachments.length === 1 ? 'File' : 'Files'} Attached
+                              </span>
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Supporting notebook scans, rough calculations, and proof sheets submitted by {selectedSub.studentName}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <QuestionStudentUpload
+                        questionId="overall-submission"
+                        attachments={candidateAttachments}
+                        onAddAttachment={() => {}}
+                        onRemoveAttachment={() => {}}
+                        readOnly
+                        label="Candidate's Supporting Rough Sheets & Solution Notes"
+                        helperText="Attached notebook scans, rough calculations, and proof sheets for this assessment"
+                        accentColor="amber"
+                      />
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Teacher Assessment Feedback & Mark Finalization Bar */}

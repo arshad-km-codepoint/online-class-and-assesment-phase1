@@ -8,7 +8,7 @@
 > **State Management:** Zustand (Modular Domain Stores with DevTools & LocalStorage Persistence)  
 > **Styling & Design System:** Vanilla Tailwind CSS + CSS Custom Properties Design Tokens ("EduDrive" Aesthetic: Warm Amber `#f39223` / Slate Neutrals)  
 > **Icons & Graphics:** Lucide React (`lucide-react`)  
-> **Client Real-Time Engine:** WebSockets (`socket.io-client` / native WebSocket) with Exponential Reconnection  
+> **Client Real-Time Engine:** Socket.IO (`socket.io-client`), WebSocket transport, jittered reconnection and authoritative snapshot resync\
 > **Target Devices:** Desktop (Primary for Teachers/Admins/High-Stakes Exams), Tablets (Proctoring/In-Class Quizzes), Mobile (Student/Parent Dashboard)  
 
 ---
@@ -17,7 +17,7 @@
 
 The Frontend of the **Online Class & Assessment Platform** provides an ultra-responsive, highly engaging, and foolproof interface for all educational stakeholders:
 1. **Teachers & Instructors:** Frictionless exam authoring wizards, dynamic question pools, automated mark calculation, real-time in-class live quiz launchers, and rubric-based grading suites with visual PDF annotations.
-2. **Students:** Distraction-free, high-stakes examination delivery environments featuring server-authoritative countdown timers, automatic zero-loss answer saving, multi-format question renderers, and pre-exam hardware readiness checks.
+2. **Students:** Distraction-free, high-stakes examination delivery environments featuring server-authoritative countdown timers, durable server-acknowledged answer saving with explicit offline status, multi-format question renderers, and pre-exam hardware readiness checks.
 3. **Academic Coordinators & Administrators:** Real-time exam session monitoring, multi-tier result approval workflows, and centralized academic hierarchy configuration.
 4. **Parents:** Unified multi-child performance tracking, exam scorecards, and live class schedules.
 
@@ -29,14 +29,6 @@ The Frontend of the **Online Class & Assessment Platform** provides an ultra-res
 
 ---
 
-## 2. Zustand State Management Architecture
-
-State is cleanly decoupled into focused, single-responsibility Zustand stores. No giant monolithic states.
-
-```mermaid
-graph TD
-    subgraph "Zustand Stores Architecture"
-        AuthStore["useAuthStore<br/>(User, Token, Role, Tenant)"]
 ## 2. Modular Architecture & Directory Structure (1:1 Backend Parity)
 
 The Frontend strictly mirrors the Backend's domain-modular architecture. Each functional domain is encapsulated into a self-contained feature module containing its own **API services, Zustand stores, custom hooks, components, page views, and types**. Cross-cutting concerns and primitive design tokens reside in `src/core/`.
@@ -196,26 +188,30 @@ graph LR
 - **State:** `user`, `role` (`admin | coordinator | teacher | proctor | student | parent`), `tenantId`, `tenantSlug`, `token`, `isAuthenticated`.
 - **Actions:** `login()`, `logout()`, `switchRole()`, `handleErpLaunchSession()`, `setTenantContext()`.
 
-#### 2. `modules/exam-delivery/stores/useExamDeliveryStore.ts` (Mission-Critical Student Store)
+#### 2. `modules/exam-delivery/stores/useExamDeliveryStore.ts` (Mission-Critical Student Store - Delta-Only Autosave)
 - **State:**
   - `activeExam`: Full exam metadata, instructions, sections, and question list.
   - `attemptId`: Current active attempt identifier.
   - `answers`: Record map `Record<questionId, StudentAnswerState>`.
+  - `dirtyQuestions`: `Set<string>` of modified question IDs awaiting synchronization (Delta tracking).
   - `questionStatusMap`: Visual status for question palette (`not_visited`, `visited`, `answered`, `not_answered`, `marked_for_review`, `answered_and_marked`).
   - `currentQuestionIndex`: Active question pointer.
   - `remainingSeconds`: Server-synchronized countdown timer.
   - `isSyncing`: Boolean indicating network autosave in flight.
   - `lastSavedAt`: Timestamp of last successful server persistence.
-  - `offlineQueue`: Array of unsaved answer payloads queued during network dropouts.
+  - `offlineQueue`: Tenant/user/attempt-scoped IndexedDB records with immutable request IDs/bodies for ambiguous retries and versioned unsent edits.
+  - `attemptRevision`, `answerRevisions`, `sessionEpoch`: Server concurrency tokens; required for mutations.
+  - `submissionReceipt`: Durable terminal receipt returned by submit/resume; absent while submission is unconfirmed.
+  - `syncStatus`: `local_only | syncing | saved | conflict | submission_pending | submitted`; only a committed receipt permits server-saved/submitted messaging.
   - `violationCount`: Tab switch and fullscreen exits detected.
 - **Actions:**
   - `initializeAttempt(examData, attemptData)`
-  - `setAnswer(questionId, payload)`
+  - `setAnswer(questionId, payload)`: Updates state and local edit version, marks the question dirty, and persists the edit to IndexedDB. Surface local storage failures; do not claim device persistence before it succeeds.
   - `markForReview(questionId)`
   - `navigateQuestion(index)`
-  - `syncAnswersToServer()` (Throttled/Debounced 10s auto-save)
+  - `flushDeltasToServer()`: Sends changed questions to `POST /api/v1/exam-delivery/:attemptId/auto-save`, debounced by 3 seconds with a maximum 10-second wait during continuous editing. Include `Idempotency-Key`, `sessionEpoch`, `baseRevision` and per-question `baseAnswerRevision`. Serialize mutations; clear only the exact edit versions acknowledged after server commit. No fixed traffic-reduction percentage is assumed.
   - `handleServerTimerTick(serverRemainingSec)`
-  - `submitExam(isAutoSubmit)`
+  - `submitExam(isAutoSubmit)`: Resolve in-flight requests, submit final deltas atomically with the revision tokens, and show confirmation only after receiving a durable terminal receipt. On timeout keep the same request key/body and reconcile through resume; grading may remain pending. The server enforces expiry independently.
 
 #### 3. `modules/live-assessment/stores/useLiveAssessmentStore.ts` (Real-Time In-Class Quiz)
 - **State:** `activeAssessment`, `connectedStudents`, `liveProgress` (who has answered, time spent), `teacherReviewSubmission`, `isTimerRunning`.
@@ -272,7 +268,8 @@ graph TD
   - Filter question bank by Bloom's Taxonomy, difficulty (Easy, Medium, Hard), and topics.
   - Select questions manually or trigger automated random generation with difficulty balancing.
 - **Step 8 – Controls, Anti-Cheat & Accommodations:**
-  - Toggles: Randomize question sequence, randomize MCQ options, disable copy/paste, enforce full-screen mode, detect tab switching, auto-submit on time expiry, enable scientific calculator, review before submission.
+  - Timed attempts always close on the server at their deadline; this cannot be disabled by a client toggle.
+  - Toggles: Randomize question sequence, randomize MCQ options, disable copy/paste, enforce full-screen mode, detect tab switching, enable scientific calculator, review before submission.
 - **Step 9 – Comprehensive Review & Launch:**
   - Summary scorecard of all configurations with instant publish or draft saving.
 
@@ -290,28 +287,35 @@ sequenceDiagram
     participant API as Fastify Backend
 
     S->>UI: Clicks "Start Exam"
-    UI->>API: POST /api/v1/exam-delivery/:id/start
+    UI->>API: POST /api/v1/exam-delivery/:examId/start
     API-->>Store: Returns Attempt Metadata & Remaining Seconds
-    Store->>Timer: Starts authoritative countdown
+    Store->>Timer: Displays countdown from persisted server deadline
     UI->>UI: Enforces Full-Screen Mode
 
-    loop Every 10-30 seconds or Question Change
+    loop Changed answers: 3-second debounce, 10-second maximum wait
         S->>UI: Selects option / enters text / uploads file
         UI->>Store: setAnswer(questionId, payload)
-        Store->>API: POST /api/v1/exam-delivery/:id/auto-save (Debounced)
-        API-->>UI: 200 OK -> Displays "Saved to cloud" badge
+        Store->>Store: Persist edit to IndexedDB
+        Store->>API: POST /api/v1/exam-delivery/:attemptId/auto-save (Key + revisions)
+        API-->>Store: 200 saved after durable commit, with revisions
+        Store->>UI: Mark only acknowledged edit versions as saved
     end
 
     alt Student Switches Tab or Exits Full-Screen
         UI->>Store: Detects document.visibilitychange / fullscreenchange
-        Store->>API: POST /api/v1/exam-delivery/:id/heartbeat (Violation logged)
+        Store->>API: POST /api/v1/exam-delivery/:attemptId/heartbeat (Violation logged)
         UI->>S: Displays Warning Modal (Max allowed: 3)
     end
 
     alt Timer Hits 00:00
         Timer->>Store: Trigger autoSubmit()
-        Store->>API: POST /api/v1/exam-delivery/:id/submit { isAutoSubmit: true }
-        UI->>S: Redirects to "Exam Submitted Successfully" screen
+        Store->>API: Fetch/confirm server expiry or submit receipt
+        alt Terminal receipt received
+            API-->>Store: submitted or auto_submitted receipt
+            UI->>S: Show confirmed outcome
+        else Network failure or no receipt
+            UI->>S: Show submission pending and retain local edits
+        end
     end
 ```
 
@@ -466,11 +470,20 @@ Add this foundational design system directly to the frontend (`src/index.css` or
 
 ## 6. Client Reliability, Offline Autosave & Accessibility
 
-### 6.1 IndexedDB / LocalStorage Backup Engine
-During an exam, every keystroke and selection is immediately mirrored to `localStorage` under `backup_attempt_{attemptId}` before network transmission. If the browser is accidentally closed, reloaded, or internet cuts out:
-1. React on mount checks `localStorage` for cached unsaved answers.
-2. Restores state instantly.
-3. Automatically resumes background sync once connection returns.
+### 6.1 IndexedDB Backup, Retry & Submission Contract
+
+Use the backend PRD Section 5 as the authoritative contract. Store edits and request receipts in IndexedDB scoped by tenant, user, and attempt. Local persistence is a recovery aid; it cannot guarantee recovery from device loss, storage eviction or unsent edits after the deadline.
+
+1. Persist every changed answer with a local edit version; report IndexedDB failures and retain in-memory work. Display “Saved on this device” only after local persistence succeeds.
+2. Maintain one mutation request in flight. Persist its idempotency key and exact body before dispatch. On ambiguous timeout retry the same request, using exponential backoff/jitter and `Retry-After` for 429/503 responses. Subsequent edits remain a separate dirty version.
+3. On reconnect/reload fetch `GET /api/v1/exam-delivery/:attemptId` for the authoritative answers, revisions, session epoch, deadline and terminal receipt. Resolve ambiguous requests before rebasing pending edits. Never overwrite server answers blindly.
+4. On `409 REVISION_CONFLICT`, preserve local work and offer review/rebase against the current server state. Explicit takeover uses `POST /:attemptId/takeover`; stale devices become read-only when their session epoch is rejected. Store takeover confirmation and warn about unsent work on the old device.
+5. Manual submit resolves prior in-flight saves and sends final deltas plus concurrency tokens to `POST /:attemptId/submit`. Show “Submission pending” until the durable receipt arrives. A network timeout is not proof of failure or success; resume/retry retrieves the outcome. Do not navigate to a success page solely because the local timer reached zero.
+6. At the deadline freeze editing and synchronize server state. The server's database clock determines acceptance; client timestamps do not authorize late edits. Preserve late unsent work separately for an audited support/recovery decision, and visibly explain that it has not been accepted. Never silently merge it into a submitted attempt.
+7. Use the exact labels “Saved on this device”, “Syncing”, “Saved to server”, and “Submission pending”. Show receipt ID and submitted/auto-submitted outcome when confirmed. Retain local recovery data only for the configured period after confirmation; warn before deleting unsent edits on logout/cleanup.
+8. Upload directly to private object storage using a scoped presigned URL, then finalize with the backend before referencing an attachment in an answer. Show upload/scan states. A valid upload URL does not permit changing an attempt after its deadline.
+
+Contract verification must cover out-of-order responses, duplicate requests, editing during a save, clear-answer deltas, multiple tabs/devices, offline deadline crossings, storage failure and a server commit followed by lost HTTP response. The frontend implementation is not complete until these flows pass against the backend.
 
 ### 6.2 Accessibility (WCAG 2.1 AA Compliance)
 - **High Contrast Support:** Dedicated high-contrast mode for visually impaired students.

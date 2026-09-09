@@ -26,6 +26,7 @@ import {
   ChevronUp,
   ChevronDown,
   Plus,
+  Paperclip,
 } from 'lucide-react';
 import { LiveAssessmentSubmission, LiveStudentAnswer, StudentQuestionAttachment } from '../../types';
 import { QuestionStudentUpload } from '../common/QuestionStudentUpload';
@@ -94,22 +95,16 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
   const [selectedMcqOption, setSelectedMcqOption] = useState<number | undefined>(undefined);
   const [selectedMmcqOptions, setSelectedMmcqOptions] = useState<number[]>([]);
 
-  // Per-Question Student File Uploads (Rough sheet / handwritten notes / steps)
-  const [questionAttachments, setQuestionAttachments] = useState<Record<string, StudentQuestionAttachment[]>>({});
+  // Overall Assessment Student File Uploads (Multiple files supported at bottom of assessment)
+  const [assessmentAttachments, setAssessmentAttachments] = useState<StudentQuestionAttachment[]>([]);
 
-  const handleAddQuestionAttachment = (questionId: string, attachment: StudentQuestionAttachment) => {
-    setQuestionAttachments((prev) => ({
-      ...prev,
-      [questionId]: [...(prev[questionId] || []), attachment],
-    }));
-    addToast('File Attached', `Attached "${attachment.name}" to question notes.`, 'success');
+  const handleAddAssessmentAttachment = (attachment: StudentQuestionAttachment) => {
+    setAssessmentAttachments((prev) => [...prev, attachment]);
+    addToast('File Attached', `Attached "${attachment.name}" to assessment workings.`, 'success');
   };
 
-  const handleRemoveQuestionAttachment = (questionId: string, attachmentId: string) => {
-    setQuestionAttachments((prev) => ({
-      ...prev,
-      [questionId]: (prev[questionId] || []).filter((a) => a.id !== attachmentId),
-    }));
+  const handleRemoveAssessmentAttachment = (attachmentId: string) => {
+    setAssessmentAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
   };
 
   const toggleMmcqOption = (idx: number) => {
@@ -353,7 +348,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
           selectedOptionIndex: selectedMcqOption,
           isAutoCorrect: isCorrect,
           scoreAwarded: awarded,
-          uploadedFiles: questionAttachments[q.id] || [],
+          uploadedFiles: [],
         };
       } else if (q.type === 'mmcq') {
         const correctIndices = q.correctOptionIndices || [];
@@ -378,7 +373,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
           selectedOptionIndices: selectedMmcqOptions,
           isAutoCorrect: isFullyCorrect,
           scoreAwarded: score,
-          uploadedFiles: questionAttachments[q.id] || [],
+          uploadedFiles: [],
         };
       } else if (q.type === 'match_following') {
         let correctMatchesCount = 0;
@@ -395,7 +390,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
           matchedPairs: matchedPairs,
           isAutoCorrect: correctMatchesCount === totalPairs,
           scoreAwarded: matchScore,
-          uploadedFiles: questionAttachments[q.id] || [],
+          uploadedFiles: [],
         };
       } else if (q.type === 'fill_in_blanks') {
         let correctBlanksCount = 0;
@@ -412,7 +407,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
           blankAnswers: blankAnswers,
           isAutoCorrect: correctBlanksCount === totalSlots,
           scoreAwarded: blankScore,
-          uploadedFiles: questionAttachments[q.id] || [],
+          uploadedFiles: [],
         };
       } else if (q.type === 'step_ordering') {
         const correctSteps = q.orderedSteps || [];
@@ -443,7 +438,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
           placedSteps: studentPlaced,
           isAutoCorrect: isExactMatch,
           scoreAwarded: stepScore,
-          uploadedFiles: questionAttachments[q.id] || [],
+          uploadedFiles: [],
         };
       } else if (q.type === 'short_answer') {
         const lower = shortAnswerText.toLowerCase();
@@ -457,13 +452,13 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
           questionId: q.id,
           textAnswer: shortAnswerText,
           scoreAwarded: shortScore,
-          uploadedFiles: questionAttachments[q.id] || [],
+          uploadedFiles: [],
         };
       }
 
       // Ensure any question has uploadedFiles tracked
       if (answersRecord[q.id] && !answersRecord[q.id].uploadedFiles) {
-        answersRecord[q.id].uploadedFiles = questionAttachments[q.id] || [];
+        answersRecord[q.id].uploadedFiles = [];
       }
     });
 
@@ -480,6 +475,7 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
         'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80',
       submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       answers: answersRecord,
+      attachments: assessmentAttachments,
       totalScore: calculatedScore,
       maxMarks: activeLiveAssessment.totalMarks,
       percentage: Math.round((calculatedScore / activeLiveAssessment.totalMarks) * 100),
@@ -662,19 +658,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       </span>
                     </div>
                     <p className="text-slate-600 text-[11px]">{mcqQuestion.explanation}</p>
-
-                    {/* Candidate Attached Work */}
-                    {finalSubmission.answers[mcqQuestion.id]?.uploadedFiles && finalSubmission.answers[mcqQuestion.id]!.uploadedFiles!.length > 0 && (
-                      <QuestionStudentUpload
-                        questionId={mcqQuestion.id}
-                        attachments={finalSubmission.answers[mcqQuestion.id]!.uploadedFiles!}
-                        onAddAttachment={() => {}}
-                        onRemoveAttachment={() => {}}
-                        readOnly
-                        label="Your Uploaded Rough Sheet / Working Notes"
-                        accentColor="amber"
-                      />
-                    )}
                   </div>
                 )}
 
@@ -688,19 +671,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       </span>
                     </div>
                     <p className="text-slate-600 text-[11px]">{mmcqQuestion.explanation}</p>
-
-                    {/* Candidate Attached Work */}
-                    {finalSubmission.answers[mmcqQuestion.id]?.uploadedFiles && finalSubmission.answers[mmcqQuestion.id]!.uploadedFiles!.length > 0 && (
-                      <QuestionStudentUpload
-                        questionId={mmcqQuestion.id}
-                        attachments={finalSubmission.answers[mmcqQuestion.id]!.uploadedFiles!}
-                        onAddAttachment={() => {}}
-                        onRemoveAttachment={() => {}}
-                        readOnly
-                        label="Your Uploaded Working Notes & Proofs"
-                        accentColor="purple"
-                      />
-                    )}
                   </div>
                 )}
 
@@ -745,19 +715,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                         );
                       })}
                     </div>
-
-                    {/* Candidate Attached Work */}
-                    {finalSubmission.answers[matchQuestion.id]?.uploadedFiles && finalSubmission.answers[matchQuestion.id]!.uploadedFiles!.length > 0 && (
-                      <QuestionStudentUpload
-                        questionId={matchQuestion.id}
-                        attachments={finalSubmission.answers[matchQuestion.id]!.uploadedFiles!}
-                        onAddAttachment={() => {}}
-                        onRemoveAttachment={() => {}}
-                        readOnly
-                        label="Your Uploaded Derivative Workings"
-                        accentColor="purple"
-                      />
-                    )}
                   </div>
                 )}
 
@@ -806,19 +763,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                         );
                       })}
                     </div>
-
-                    {/* Candidate Attached Work */}
-                    {finalSubmission.answers[fillBlanksQuestion.id]?.uploadedFiles && finalSubmission.answers[fillBlanksQuestion.id]!.uploadedFiles!.length > 0 && (
-                      <QuestionStudentUpload
-                        questionId={fillBlanksQuestion.id}
-                        attachments={finalSubmission.answers[fillBlanksQuestion.id]!.uploadedFiles!}
-                        onAddAttachment={() => {}}
-                        onRemoveAttachment={() => {}}
-                        readOnly
-                        label="Your Uploaded Identity Notes"
-                        accentColor="indigo"
-                      />
-                    )}
                   </div>
                 )}
 
@@ -832,19 +776,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       </span>
                     </div>
                     <p className="text-slate-600 text-[11px]">{stepQuestion.explanation}</p>
-
-                    {/* Candidate Attached Work */}
-                    {finalSubmission.answers[stepQuestion.id]?.uploadedFiles && finalSubmission.answers[stepQuestion.id]!.uploadedFiles!.length > 0 && (
-                      <QuestionStudentUpload
-                        questionId={stepQuestion.id}
-                        attachments={finalSubmission.answers[stepQuestion.id]!.uploadedFiles!}
-                        onAddAttachment={() => {}}
-                        onRemoveAttachment={() => {}}
-                        readOnly
-                        label="Your Uploaded Sequential Proof Scratchpad"
-                        accentColor="indigo"
-                      />
-                    )}
                   </div>
                 )}
 
@@ -860,19 +791,22 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                     <p className="text-slate-600 text-[11px]">
                       <b>Sample Answer:</b> {shortQuestion.sampleAnswer}
                     </p>
+                  </div>
+                )}
 
-                    {/* Candidate Attached Work */}
-                    {finalSubmission.answers[shortQuestion.id]?.uploadedFiles && finalSubmission.answers[shortQuestion.id]!.uploadedFiles!.length > 0 && (
-                      <QuestionStudentUpload
-                        questionId={shortQuestion.id}
-                        attachments={finalSubmission.answers[shortQuestion.id]!.uploadedFiles!}
-                        onAddAttachment={() => {}}
-                        onRemoveAttachment={() => {}}
-                        readOnly
-                        label="Your Uploaded Geometric Diagram / Conceptual Derivation"
-                        accentColor="indigo"
-                      />
-                    )}
+                {/* Overall Assessment Uploaded Workings & Rough Sheets */}
+                {finalSubmission.attachments && finalSubmission.attachments.length > 0 && (
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                    <QuestionStudentUpload
+                      questionId="overall-submission-review"
+                      attachments={finalSubmission.attachments}
+                      onAddAttachment={() => {}}
+                      onRemoveAttachment={() => {}}
+                      readOnly
+                      label="Your Uploaded Assessment Rough Sheets & Workings"
+                      helperText="Attached notebooks, rough sheets, and proofs submitted for this assessment"
+                      accentColor="amber"
+                    />
                   </div>
                 )}
               </div>
@@ -927,18 +861,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       );
                     })}
                   </div>
-
-                  {/* Student Rough Work Upload for Question 1 */}
-                  <QuestionStudentUpload
-                    questionId={mcqQuestion.id}
-                    questionNumber={1}
-                    attachments={questionAttachments[mcqQuestion.id] || []}
-                    onAddAttachment={(att) => handleAddQuestionAttachment(mcqQuestion.id, att)}
-                    onRemoveAttachment={(attId) => handleRemoveQuestionAttachment(mcqQuestion.id, attId)}
-                    accentColor="amber"
-                    label="Question 1 • Attach Rough Work / Solution Notes"
-                    helperText="Upload photos of notebook calculations or rough chain rule steps"
-                  />
                 </div>
               )}
 
@@ -982,18 +904,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       );
                     })}
                   </div>
-
-                  {/* Student Rough Work Upload for MMCQ */}
-                  <QuestionStudentUpload
-                    questionId={mmcqQuestion.id}
-                    questionNumber={2}
-                    attachments={questionAttachments[mmcqQuestion.id] || []}
-                    onAddAttachment={(att) => handleAddQuestionAttachment(mmcqQuestion.id, att)}
-                    onRemoveAttachment={(attId) => handleRemoveQuestionAttachment(mmcqQuestion.id, attId)}
-                    accentColor="purple"
-                    label="Question 2 • Attach Working Notes & Derivative Proofs"
-                    helperText="Upload calculation sheets or handwritten proofs for multiple options"
-                  />
                 </div>
               )}
 
@@ -1276,18 +1186,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       })}
                     </div>
                   </div>
-
-                  {/* Student Rough Work Upload for Match the Following */}
-                  <QuestionStudentUpload
-                    questionId={matchQuestion.id}
-                    questionNumber={3}
-                    attachments={questionAttachments[matchQuestion.id] || []}
-                    onAddAttachment={(att) => handleAddQuestionAttachment(matchQuestion.id, att)}
-                    onRemoveAttachment={(attId) => handleRemoveQuestionAttachment(matchQuestion.id, attId)}
-                    accentColor="purple"
-                    label="Question 3 • Attach Function Derivative Workings"
-                    helperText="Upload rough calculations or step workings for Column A & B pairs"
-                  />
                 </div>
               )}
 
@@ -1481,18 +1379,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       })}
                     </div>
                   </div>
-
-                  {/* Student Rough Work Upload for Fill in Blanks */}
-                  <QuestionStudentUpload
-                    questionId={fillBlanksQuestion.id}
-                    questionNumber={4}
-                    attachments={questionAttachments[fillBlanksQuestion.id] || []}
-                    onAddAttachment={(att) => handleAddQuestionAttachment(fillBlanksQuestion.id, att)}
-                    onRemoveAttachment={(attId) => handleRemoveQuestionAttachment(fillBlanksQuestion.id, attId)}
-                    accentColor="indigo"
-                    label="Question 4 • Attach Calculus Identities Rough Sheet"
-                    helperText="Upload scratchpad steps or notes for algebraic calculus identities"
-                  />
                 </div>
               )}
 
@@ -1649,18 +1535,6 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                       })}
                     </div>
                   </div>
-
-                  {/* Student Rough Work Upload for Step Ordering */}
-                  <QuestionStudentUpload
-                    questionId={stepQuestion.id}
-                    questionNumber={5}
-                    attachments={questionAttachments[stepQuestion.id] || []}
-                    onAddAttachment={(att) => handleAddQuestionAttachment(stepQuestion.id, att)}
-                    onRemoveAttachment={(attId) => handleRemoveQuestionAttachment(stepQuestion.id, attId)}
-                    accentColor="indigo"
-                    label="Sequence Question • Attach Proof Scratchpad / Flowchart"
-                    helperText="Upload handwritten sequential flow or proof steps"
-                  />
                 </div>
               )}
 
@@ -1683,20 +1557,52 @@ const LiveAssessmentStudentModalContent: React.FC<{ assessment: NonNullable<Retu
                     placeholder="Type your concise geometric explanation here (e.g. slope of tangent line to the curve at point a)..."
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-[#f39223] focus:outline-none placeholder:text-slate-400"
                   />
-
-                  {/* Student Rough Work Upload for Short Answer */}
-                  <QuestionStudentUpload
-                    questionId={shortQuestion.id}
-                    questionNumber={6}
-                    attachments={questionAttachments[shortQuestion.id] || []}
-                    onAddAttachment={(att) => handleAddQuestionAttachment(shortQuestion.id, att)}
-                    onRemoveAttachment={(attId) => handleRemoveQuestionAttachment(shortQuestion.id, attId)}
-                    accentColor="indigo"
-                    label="Conceptual Question • Attach Diagram or Written Derivation"
-                    helperText="Upload geometric diagrams, tangents sketch, or handwritten conceptual explanation"
-                  />
                 </div>
               )}
+
+              {/* Bottom Assessment Attachments - Single section with Multiple File Support */}
+              <div className="p-5 bg-linear-to-b from-amber-50/60 via-white to-slate-50/80 rounded-2xl border-2 border-amber-300 shadow-sm space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-amber-100 text-[#c26d15] border border-amber-300 shadow-2xs">
+                      <Paperclip className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider flex items-center gap-2">
+                        <span>Supporting Workings & Rough Sheets</span>
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                          Multiple Files Supported
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Upload rough sheets, notebook scans, calculation steps, or reference sheets for this assessment
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full border shadow-2xs ${
+                      assessmentAttachments.length > 0
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-slate-100 text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    {assessmentAttachments.length === 0
+                      ? 'No files attached (Optional)'
+                      : `${assessmentAttachments.length} ${assessmentAttachments.length === 1 ? 'file' : 'files'} attached`}
+                  </span>
+                </div>
+
+                <QuestionStudentUpload
+                  questionId="assessment-overall"
+                  attachments={assessmentAttachments}
+                  onAddAttachment={handleAddAssessmentAttachment}
+                  onRemoveAttachment={handleRemoveAssessmentAttachment}
+                  accentColor="amber"
+                  label="Attach Student Rough Work / Solution Notes"
+                  helperText="Upload photos of your notebook, rough calculations, or PDF sheets (PNG, JPG, PDF up to 10MB - multiple files supported)"
+                />
+              </div>
             </div>
           )}
         </div>

@@ -1123,6 +1123,7 @@ export interface LiveAssessmentSubmission {
   avatar: string;
   submittedAt: string;
   answers: Record<string, LiveStudentAnswer>;
+  attachments?: StudentQuestionAttachment[];
   totalScore: number;
   maxMarks: number;
   percentage: number;

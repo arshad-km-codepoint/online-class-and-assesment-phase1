@@ -1,7 +1,7 @@
 # Online Class & Assessment Platform — Master PRD & Architecture Index
 
 > **Platform:** Enterprise Online Class & Assessment System  
-> **Backend Architecture:** Node.js + Fastify, PostgreSQL (Database-per-Tenant), Redis, Drizzle ORM, BullMQ, WebSockets  
+> **Backend Architecture:** Node.js 24 + Fastify 5 modular monolith, PostgreSQL tenant cells, bounded PgBouncer pools, durable saves/outbox, isolated Redis/BullMQ, Socket.IO\
 > **Frontend Architecture:** React (Latest / v18+ / 19), TypeScript, Zustand Store Architecture, Tailwind CSS ("EduDrive" Design System)  
 > **Integration Mode:** Standalone SaaS + Pluggable Connected School ERP / SIS (HMAC-SHA256 Webhooks, SSO Launch, LTI 1.3 Advantage)  
 
@@ -11,10 +11,10 @@
 
 | Document | Target Layer | Key Contents & Tech Specs |
 | :--- | :--- | :--- |
-| **[Backend PRD](file:///home/arshad/Workspace/demo/online-class%20and%20assesment-phase1/docs/PRD_BACKEND.md)** | Backend & Data Layer | Node Fastify, Database-per-tenant (`own-db`), Drizzle ORM schema, PgBouncer pooling, Redis write-behind buffer (50k+ concurrent test-takers), BullMQ worker queues, Zero-data loss autosave, API specifications. |
-| **[Frontend PRD](file:///home/arshad/Workspace/demo/online-class%20and%20assesment-phase1/docs/PRD_FRONTEND.md)** | Frontend & Client App | React Latest, 1:1 Domain-Modular Structure matching Backend (`src/modules/*`), Zustand modular stores, EduDrive design tokens, 9-step Exam Wizard, Student Delivery Engine, Live Classroom & Quiz Studio, Teacher Evaluation with Canvas Annotations. |
-| **[API & Webhook Spec](file:///home/arshad/Workspace/demo/online-class%20and%20assesment-phase1/docs/API_AND_WEBHOOK_INTEGRATION_SPEC.md)** | Integration Layer | Bi-directional REST webhooks, HMAC-SHA256 signatures, JIT user provisioning, automatic gradebook sync back to ERP. |
-| **[ERP & Standalone Architecture](file:///home/arshad/Workspace/demo/online-class%20and%20assesment-phase1/docs/ERP_INTEGRATION_AND_STANDALONE_ARCHITECTURE.md)** | Architecture Layer | Hexagonal decoupled adapter pattern, dual-mode deployment (100% Standalone vs Connected ERP), LTI 1.3 Advantage specifications. |
+| **[Backend PRD](PRD_BACKEND.md)** | Backend & Data Layer | Durable PostgreSQL answer/submission transactions, revision/idempotency protocol, database-per-tenant cells and connection budgets, independent workers, scheduled/reactive scaling, recovery requirements and 1k/10k/50k qualification gates (not certified capacities). |
+| **[Frontend PRD](PRD_FRONTEND.md)** | Frontend & Client App | React Latest, 1:1 Domain-Modular Structure matching Backend (`src/modules/*`), Zustand modular stores, EduDrive design tokens, 9-step Exam Wizard, Student Delivery Engine, Live Classroom & Quiz Studio, Teacher Evaluation with Canvas Annotations. |
+| **[API & Webhook Spec](API_AND_WEBHOOK_INTEGRATION_SPEC.md)** | Integration Layer | Bi-directional REST webhooks, HMAC-SHA256 signatures, JIT user provisioning, automatic gradebook sync back to ERP. |
+| **[ERP & Standalone Architecture](ERP_INTEGRATION_AND_STANDALONE_ARCHITECTURE.md)** | Architecture Layer | Hexagonal decoupled adapter pattern, dual-mode deployment (100% Standalone vs Connected ERP), LTI 1.3 Advantage specifications. |
 
 ---
 
@@ -33,25 +33,28 @@ graph TB
         Gateway["Fastify API Gateway"]
         TenantHook["Tenant Resolver Hook (Host / Header / JWT)"]
         AuthHook["Auth Guard & RBAC Hook (RS256 JWT)"]
-        WSServer["Fastify WebSocket Multiplexer"]
+        WSServer["Socket.IO Gateway"]
     end
 
     subgraph "Application Services & Workers"
         ExamService["Exam & Delivery Engine"]
         EvalService["Evaluation & Annotation Engine"]
         LiveClassService["Live Classroom & Telemetry"]
-        SyncWorker["BullMQ Worker (ERP Sync & Auto-Submit)"]
+        SyncWorker["Independent Workers and Deadline Sweeper"]
+        Outbox["Durable DB Outbox and Reconciler"]
     end
 
-    subgraph "In-Memory & Cache (Redis 7.2)"
-        RedisCache["Redis Cluster<br/>(Timer State, Autosave Buffer, Pub/Sub, Blacklist)"]
+    subgraph "Separate Redis Workloads"
+        RedisCache["Disposable Metadata Cache / Realtime PubSub"]
+        QueueRedis["Dedicated BullMQ Redis<br/>(Reconstructable from DB outbox)"]
     end
 
     subgraph "Master Infrastructure"
-        MasterDB[("Master Catalog DB<br/>(Tenants, Subscriptions, DB Credentials)")]
+        MasterDB[("Master Catalog DB<br/>(Tenants, Placement, Schedules, Secret References)")]
     end
 
-    subgraph "Isolated Tenant Databases (PostgreSQL - Database per Tenant)"
+    subgraph "Tenant Databases Across HA PostgreSQL Cells"
+        Pooler["Budgeted PgBouncer Pools"]
         TenantDB1[("Tenant DB 1<br/>School Al Amal")]
         TenantDB2[("Tenant DB 2<br/>Dubai Academy")]
         TenantDBN[("Tenant DB N<br/>Riyadh International")]
@@ -79,13 +82,22 @@ graph TB
     WSServer --> LiveClassService
 
     ExamService --> RedisCache
-    ExamService --> TenantDB1
-    ExamService --> TenantDB2
-    EvalService --> TenantDB1
+    ExamService -->|Commit answers and receipt| Pooler
+    EvalService --> Pooler
+    Pooler --> TenantDB1
+    Pooler --> TenantDB2
+    Pooler --> TenantDBN
+    TenantDB1 --> Outbox
+    TenantDB2 --> Outbox
+    TenantDBN --> Outbox
+    Outbox --> QueueRedis
+    QueueRedis --> SyncWorker
+    SyncWorker --> Pooler
     LiveClassService --> RedisCache
-    SyncWorker --> RedisCache
     SyncWorker --> SchoolERP
 
     SchoolERP -->|REST Webhook / SSO Launch| Gateway
     ThirdPartyLMS -->|LTI 1.3 Launch| Gateway
 ```
+
+Backend PRD v2.0 is the authority for tenant routing, durable saves/submission, scaling and recovery. Frontend save/retry/status behavior must follow its Section 5. Capacity remains a target until the corresponding load and failure qualification reports pass.

@@ -1,162 +1,113 @@
-# Backend Product Requirements Document (PRD) & Technical Architecture Spec
-## Online Class & Assessment Platform (Enterprise Edition)
+# Backend Product Requirements Document & Technical Architecture
+## Online Class & Assessment Platform
 
-> **Document Version:** 1.0  
-> **Target Release:** Phase 1 & Enterprise Rollout  
-> **Architecture Style:** Decoupled Hexagonal / Micro-modular Modular Monolith  
-> **Runtime & Core Stack:** Node.js (LTS), Fastify Framework, TypeScript, PostgreSQL (Database-per-Tenant), Drizzle ORM, Redis (Cluster/Sentinel), BullMQ, WebSockets  
-> **Tenancy Model:** Strict Multi-Tenant with Isolated Database per Tenant (`own-db`) + Master Management Catalog DB  
-> **Integration Capabilities:** Standalone SaaS, Bi-Directional ERP REST Webhooks (HMAC-SHA256), LTI 1.3 Advantage (IMS Global)  
+> **Version:** 2.0 — architecture revision, 2026-09-09\
+> **Status:** Implementation specification; capacity and recovery targets require verification.\
+> **Architecture:** Modular monolith with independently deployed API, realtime gateway, and worker processes.\
+> **Tenancy:** Database per institution, placed across bounded PostgreSQL clusters (“cells”).\
+> **Runtime:** Node.js 24 LTS, Fastify 5, TypeScript, Drizzle, PostgreSQL, PgBouncer, Redis, BullMQ, Socket.IO.\
+> **Durability:** PostgreSQL commit before acknowledging answers or final submission. Redis is never the only copy of an acknowledged answer.
 
----
+## 1. Scope, Priorities & Capacity Contract
 
-## 1. Executive Summary & Architectural Scope
+Support curriculum, question pools, exam authoring and delivery, accommodations, objective and manual grading, four-stage result publication, live quizzes, attendance, file annotations, ERP integration, and LTI 1.3. Preserve these domain modules in one codebase with explicit service interfaces. API handlers must not execute PDF rendering, video processing, bulk reports, or grading loops.
 
-The Backend of the **Online Class & Assessment Platform** provides the mission-critical foundational services for:
-1. **Curriculum & Academic Structure Management:** Academic years, grades, sections, subjects, chapters, topics, and question pools.
-2. **Assessment Authoring & Scheduling:** Authoring spot quizzes, term exams, randomized question sets, rubric-driven subjective exams, and PDF-based question papers.
-3. **High-Concurrency Exam Delivery:** Resilient exam sessions supporting thousands of simultaneous test-takers with zero data-loss auto-save, server-side authoritative timer countdowns, and offline tolerance.
-4. **Live Classrooms & Real-Time In-Class Quizzes:** Audio/video integration (In-App WebRTC, Google Meet, Zoom, MS Teams), live polling, step-ordering proofs, fill-in-the-blanks, and live student attendance tracking.
-5. **Evaluation & Result Processing Engine:** Automated scoring (MCQ, MMCQ, matching, ordering), manual rubric grading, visual PDF/image annotation, score override tracking, audit logging, and 4-tier publication approval.
-6. **Multi-Tenant Isolation (Database-per-Tenant):** Complete physical database isolation for each educational institution ensuring stringent student data privacy (GDPR, FERPA, COPPA compliance).
+Priority order: tenant/attempt authorization, acknowledged answer durability, consistent submission, availability, then latency and operating cost. Database-per-tenant is retained; it does not imply dedicated hardware or automatic regulatory compliance.
 
----
+Capacity is specified as **active exam attempts**, not total registered accounts or open browser tabs. Initial qualification is 1,000 active attempts; subsequent gates are 10,000 and 50,000 across multiple tenants/cells. A single 50,000-student tenant is a separate qualification, not implied by aggregate capacity. Section 13 defines the workload and release tests. No tier is certified by this PRD alone.
 
-## 2. Multi-Tenant Database-per-Tenant Architecture
-
-### 2.1 Multi-Tenant Tenancy Model
-
-The system employs a **Master Catalog Database + Dynamic Tenant Database Router** model.
+## 2. Deployment, Tenancy & Connection Architecture
 
 ```mermaid
-graph TD
-    Client[Client Request / Webhook / SSO Launch] --> Gateway[Fastify API Gateway]
-    Gateway --> TenantResolver[Tenant Resolution Hook]
-    
-    subgraph "Master Infrastructure"
-        TenantResolver -->|1. Lookup Tenant Slug / Domain| MasterDB[(Master Catalog DB - PostgreSQL)]
-        TenantResolver -->|2. Fetch Cached Connection Pool| RedisCache[(Redis - Connection & Metadata Cache)]
-    end
-
-    subgraph "Dynamic Tenant Pool Manager"
-        TenantResolver -->|3. Inject Tenant Context `req.tenantDb`| PoolManager[Drizzle Tenant Connection Pool Manager]
-    end
-
-    subgraph "Isolated Tenant Databases"
-        PoolManager --> TenantDB1[(Tenant DB: `school_al_amal`)]
-        PoolManager --> TenantDB2[(Tenant DB: `school_dubai_academy`)]
-        PoolManager --> TenantDBN[(Tenant DB: `school_riyadh_intl`)]
-    end
+flowchart TD
+    Browser[Student and staff clients] --> Edge[WAF and load balancer]
+    Browser --> CDN[Private CDN and object storage]
+    Edge --> API[Stateless Fastify API replicas]
+    Edge --> RT[Socket.IO gateway replicas]
+    API --> Resolver[Verified tenant routing]
+    Resolver --> Catalog[HA catalog and local metadata cache]
+    Resolver --> Pool[Bounded tenant pools]
+    Pool --> PB[PgBouncer per cell]
+    PB --> PG[Cell: tenant databases on HA PostgreSQL]
+    PG --> Outbox[Durable outbox and pending-work reconciler]
+    Outbox --> Queue[Dedicated Redis BullMQ queues]
+    Queue --> Worker[Independent worker deployments]
+    Worker --> PB
+    API --> Cache[Disposable metadata cache]
+    RT --> PubSub[Redis realtime pub/sub]
+    Worker --> Media[External media provider and CPU workers]
 ```
 
-### 2.2 Tenant Identification Strategies
-Tenants are resolved at the Fastify preHandler hook level through:
-1. **Custom Subdomain:** `school-slug.assessment.domain.com` ➔ `school-slug`
-2. **HTTP Header (API/Mobile):** `X-Tenant-ID: school_al_amal_001`
-3. **JWT Claim (Authenticated Requests):** Decoded `tenantId` from verified token.
-4. **SSO / LTI Launch Payload:** Dynamic tenant identifier verified via issuer certificate.
+### 2.1 Cell placement and failure boundaries
 
-### 2.3 Master Catalog DB Schema (`master_catalog_db`)
-The master catalog holds only institutional tenant metadata, subscriptions, and database credentials (encrypted with AES-256-GCM).
+A cell owns a defined set of tenant databases, PostgreSQL primary/standby, poolers, and worker budgets. Catalog fields: `tenant_id`, slug, status, verified domains, `cell_id`, writer endpoint reference, database name, runtime secret reference, credential version, schema version, placement generation, and storage/concurrency quotas. Store secret references in the catalog; retrieve credentials from a secret manager using workload identity. Keep no plaintext credentials in Redis.
 
-```sql
-CREATE TABLE tenants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_slug VARCHAR(64) UNIQUE NOT NULL,
-    institution_name VARCHAR(255) NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT 'active', -- active, suspended, provisioning, maintenance
-    db_host VARCHAR(255) NOT NULL,
-    db_port INT NOT NULL DEFAULT 5432,
-    db_name VARCHAR(128) NOT NULL,
-    db_user VARCHAR(128) NOT NULL,
-    db_password_encrypted TEXT NOT NULL,
-    db_ssl_enabled BOOLEAN NOT NULL DEFAULT true,
-    db_max_connections INT NOT NULL DEFAULT 20,
-    subscription_tier VARCHAR(64) NOT NULL DEFAULT 'enterprise',
-    storage_quota_gb INT NOT NULL DEFAULT 100,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+Place new tenants using measured CPU, WAL, storage latency, database connection demand, and forecast exam concurrency. Add cells before existing cells exceed their tested envelope. Dedicated cells are available for unusually large institutions. Read replicas serve explicitly stale-tolerant reports only; they do not increase primary write capacity. Start/resume/save/submit and immediate result reads use the writer.
 
-CREATE TABLE tenant_domains (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-    domain VARCHAR(255) UNIQUE NOT NULL,
-    is_primary BOOLEAN DEFAULT false,
-    verified BOOLEAN DEFAULT true
-);
+Tenant relocation requires a resumable runbook: copy and catch up, drain writes, fence old routing generation, verify consistency, atomically switch catalog placement, invalidate caches/pools, resume, and verify. Prefer moves outside exams; never allow two writable authorities. Document a rollback boundary after target writes begin.
 
-CREATE TABLE tenant_migration_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-    migration_name VARCHAR(255) NOT NULL,
-    executed_at TIMESTAMPTZ DEFAULT NOW(),
-    batch INT NOT NULL
-);
+### 2.2 Tenant and identity resolution
+
+Resolve a candidate tenant from an allowlisted hostname or explicit tenant identifier; verify proxy headers only from trusted ingress. For authenticated requests verify JWT signature, issuer, audience, expiry, user/session status, then require tenant claim and candidate to agree. Reject conflicts. Do not create a tenant pool based on arbitrary unauthenticated headers. Login may access only a verified active tenant with bounded admission.
+
+Derive `studentId` from the authenticated principal. Validate attempt ownership, exam eligibility, role scope (assigned teacher/class, linked parent/child), and tenant for every HTTP request, job, object access, and socket subscription. A role check alone is insufficient. LTI tenant resolution uses registered issuer + client ID + deployment ID, not an untrusted launch claim.
+
+Catalog cache: bounded local cache keyed by tenant and placement/credential generation, short configurable expiry, jittered refresh, single-flight lookup, and explicit invalidation on changes. Do not use Redis to cache live connection objects. During catalog outages, already validated routes may continue for at most the configured 60-second metadata freshness window; unknown/stale routes fail closed. Session revocation has the separate policy in Section 8.
+
+### 2.3 Pool and connection budgets
+
+Use PgBouncer transaction pooling. Backend connections remain allocated for the whole transaction. Avoid session-local assumptions, session advisory locks, and temporary state across transactions. Verify prepared-statement support against the pinned pooler/driver versions; migrations use a separately limited direct connection.
+
+Each process has a bounded LRU registry of tenant pools with reference counts, small per-tenant pool size, total connection semaphore, bounded wait queue, and deadline. Initial settings for testing: 2 connections per tenant pool, 32 live pools per process, and 16 total active/connecting database connections per process. These are starting limits, not capacity promises. Retire idle pools after 15 minutes only when no operation holds a lease; call `pool.end()`. Credential/placement changes retire old pools safely. Release leases in `finally`; close all pools during shutdown. Workers count toward the same cell budget.
+
+PgBouncer `default_pool_size` is per database/user pair, not a host-wide cap. Multiple poolers multiply server connection allowances. `max_client_conn` limits clients, not PostgreSQL backend connections. Use explicit database mappings and per-database caps rather than an unrestricted wildcard.
+
+For each host maintain:
+
+`sum(all poolers' database/user caps, including reserves) + direct operational connections <= tested host connection budget < max_connections`.
+
+Illustrative admission budget for a host tested with `max_connections=150`: allocate at most 100 pooled server connections in total, 20 direct operational connections, and 30 headroom. With ten tenants and two active poolers, five server connections per tenant per pooler consume the full 100. Adding tenants requires rebalancing or a new cell, not multiplying the allowance. One pooler failure may reduce throughput; remaining capacity must satisfy the degraded-mode test. PgBouncer replicas do not coordinate these limits automatically.
+
+Example fragment for **one tenant on one pooler**; generate and validate the complete inventory against the host budget:
+
+```ini
+[databases]
+tenant_example = host=cell-writer.internal port=5432 dbname=tenant_example pool_size=5 min_pool_size=0 reserve_pool_size=0 max_db_connections=5
+
+[pgbouncer]
+pool_mode = transaction
+max_client_conn = 500
+min_pool_size = 0
+reserve_pool_size = 0
+query_wait_timeout = 2
+auth_type = scram-sha-256
+client_tls_sslmode = require
+server_tls_sslmode = verify-full
+; Mount authentication material, TLS certificates and trusted CA separately.
 ```
 
-### 2.4 Drizzle Dynamic Database Manager Pattern
-```typescript
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import * as tenantSchema from './schema/tenant';
+Do not fix PostgreSQL `work_mem` at 32–64 MB globally based only on host RAM: it can be consumed by multiple operations per query and concurrent sessions. Start conservatively, measure, and use bounded worker-specific overrides. Tune WAL, checkpoints, autovacuum, disk headroom, and connection limits from representative tests.
 
-interface TenantConnection {
-  pool: Pool;
-  db: ReturnType<typeof drizzle<typeof tenantSchema>>;
-  lastAccessed: number;
-}
+## 3. Technology & Process Boundaries
 
-export class TenantConnectionManager {
-  private static pools: Map<string, TenantConnection> = new Map();
-  private static readonly IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 mins pool recycling
-
-  static async getTenantDb(tenantId: string, credentials: TenantDbCredentials) {
-    const existing = this.pools.get(tenantId);
-    if (existing) {
-      existing.lastAccessed = Date.now();
-      return existing.db;
-    }
-
-    const pool = new Pool({
-      host: credentials.host,
-      port: credentials.port,
-      database: credentials.database,
-      user: credentials.user,
-      password: credentials.password,
-      max: credentials.maxConnections || 15,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
-
-    const db = drizzle(pool, { schema: tenantSchema });
-    this.pools.set(tenantId, { pool, db, lastAccessed: Date.now() });
-    return db;
-  }
-}
-```
-
----
-
-## 3. Technology Stack & Architecture Principles
-
-| Layer | Technology | Rationale & Enterprise Responsibility |
+| Component | Decision | Responsibility |
 | :--- | :--- | :--- |
-| **Runtime** | Node.js v20+ LTS | Event-driven, low-latency, memory-efficient execution. |
-| **HTTP Framework** | Fastify v4.26+ | 2x-4x throughput of Express; built-in Schema Compilation via `@fastify/type-provider-typebox`, structured JSON logging with Pino. |
-| **Database** | PostgreSQL 16+ | ACID transactions, native JSONB support for complex question structures, rubrics, and answer matrices. |
-| **ORM & Migrations** | Drizzle ORM + Drizzle Kit | Pure TypeScript, zero runtime overhead, strict typing, migration runner across dynamic multi-tenant databases. |
-| **Caching & In-Memory**| Redis 7.2+ Cluster | Session blacklist, distributed locks, rate-limiting, exam active state snapshots, WebSocket pub/sub. |
-| **Asynchronous Jobs** | BullMQ + Redis | Auto-submission on timer expiry, PDF text parsing/watermarking, gradebook batch sync, webhook dispatch. |
-| **Real-time Protocol** | Fastify WebSocket / Socket.io Redis Adapter | Bi-directional exam state updates, live class student participation, proctoring alert notifications. |
-| **Authentication** | JWT (RS256) + Argon2id | Asymmetric public/private key JWTs for stateless API auth; Argon2id for secure password hashing. |
-| **File Storage** | AWS S3 / MinIO / Azure Blob | Presigned secure upload URLs for student answer sheets, question papers, and audio/video recordings. |
+| API | Node.js 24 LTS / Fastify 5 / TypeScript | Validation, authorization, short transactions |
+| Persistence | Supported PostgreSQL 17 or 18 minor, pinned per deployment; Drizzle | Authoritative answers, deadlines, receipts, outbox, audits |
+| Pooling | PgBouncer, tested/pinned version | Bounded transaction multiplexing per cell |
+| Cache | Dedicated disposable Redis deployment | Metadata and derived views; safe eviction |
+| Jobs | BullMQ with separate durable Redis deployment | Retryable background work; reconstructable from DB |
+| Realtime | Socket.IO with its Redis adapter | Authorized notifications and presence, not answer durability |
+| Storage | Private S3-compatible storage + authenticated CDN | Direct uploads/downloads; no media bytes through API |
+| Media | Managed WebRTC SFU/TURN provider initially | Audio/video/recording; distinct concurrency and egress budget |
 
----
+Keep separate API, realtime, exam-critical workers, integration workers, and CPU-heavy workers. They may share domain packages, but deploy and scale independently. Tenant quotas and separate queue concurrency protect exam persistence from reports, PDFs, and integrations. Benchmark framework behavior; do not promise throughput multipliers or “zero ORM overhead.”
+
+Pin exact dependency versions in a backend lockfile and verify Fastify plugin compatibility, Node support, Drizzle migration commands, pooler behavior, and Redis topology in CI. Node 20/Fastify 4 are not the production baseline. Repository scaffolding is a future implementation deliverable, not supplied by these domain snippets.
 
 ## 4. Tenant Database Schema Specification (Drizzle ORM)
 
-Each institutional tenant database contains complete isolation of the following data tables.
+These Drizzle fragments describe domain fields, not a standalone executable schema. Section 4.8 supplies mandatory constraints and additional tables; both must be implemented together. Separate databases isolate SQL namespaces and permissions, while tenants on a host share its resources and failure domain.
 
 ```mermaid
 erDiagram
@@ -192,7 +143,7 @@ export const users = pgTable('users', {
   role: varchar('role', { length: 32 }).notNull(), // 'admin' | 'coordinator' | 'teacher' | 'proctor' | 'student' | 'parent'
   avatarUrl: text('avatar_url'),
   smartCardUid: varchar('smart_card_uid', { length: 64 }), // NFC Smart Card ID
-  faceEmbedding: jsonb('face_embedding'), // 512-dim facial vector
+  biometricReference: text('biometric_reference'), // Optional restricted encrypted biometric store; disabled by default
   status: varchar('status', { length: 32 }).default('active'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
@@ -201,7 +152,7 @@ export const users = pgTable('users', {
 // student_accommodations (Special education / exam adjustments)
 export const studentAccommodations = pgTable('student_accommodations', {
   id: uuid('id').defaultRandom().primaryKey(),
-  studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }),
+  studentId: uuid('student_id').references(() => users.id, { onDelete: 'restrict' }),
   extraTimeMultiplier: real('extra_time_multiplier').default(1.0), // 1.25x, 1.5x, 2.0x
   relaxedProctoring: boolean('relaxed_proctoring').default(false),
   allowedBreakMinutes: integer('allowed_break_minutes').default(0),
@@ -231,7 +182,7 @@ export const classes = pgTable('classes', {
 
 export const divisions = pgTable('divisions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  classId: uuid('class_id').references(() => classes.id, { onDelete: 'cascade' }),
+  classId: uuid('class_id').references(() => classes.id, { onDelete: 'restrict' }),
   name: varchar('name', { length: 64 }).notNull(), // 'Division A'
 });
 
@@ -244,7 +195,7 @@ export const subjects = pgTable('subjects', {
 
 export const chapters = pgTable('chapters', {
   id: uuid('id').defaultRandom().primaryKey(),
-  subjectId: uuid('subject_id').references(() => subjects.id, { onDelete: 'cascade' }),
+  subjectId: uuid('subject_id').references(() => subjects.id, { onDelete: 'restrict' }),
   chapterNumber: integer('chapter_number').notNull(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
@@ -252,7 +203,7 @@ export const chapters = pgTable('chapters', {
 
 export const topics = pgTable('topics', {
   id: uuid('id').defaultRandom().primaryKey(),
-  chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
+  chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'restrict' }),
   title: varchar('title', { length: 255 }).notNull(),
 });
 ```
@@ -268,7 +219,7 @@ export const questionBank = pgTable('question_bank', {
   difficulty: varchar('difficulty', { length: 32 }).default('Medium'), // Easy, Medium, Hard
   bloomsTaxonomy: varchar('blooms_taxonomy', { length: 32 }), // Remember, Understand, Apply, Analyze, Evaluate, Create
   level: varchar('level', { length: 32 }), // Level 1, Level 2, Level 3, Level 4
-  marks: real('marks').notNull(),
+  marks: numeric('marks', { precision: 10, scale: 2 }).notNull(),
   prompt: text('prompt').notNull(),
   explanation: text('explanation'),
   modelAnswer: text('model_answer'),
@@ -290,16 +241,16 @@ export const exams = pgTable('exams', {
   examType: varchar('exam_type', { length: 32 }).notNull(), // 'spot' | 'scheduled'
   academicYearId: uuid('academic_year_id').references(() => academicYears.id),
   subjectId: uuid('subject_id').references(() => subjects.id),
-  startDate: date('start_date'),
-  startTime: time('start_time'),
-  endDate: date('end_date'),
-  endTime: time('end_time'),
+  startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+  endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+  displayTimezone: varchar('display_timezone', { length: 64 }).notNull(), // IANA timezone
+  publishedVersionId: uuid('published_version_id'), // FK to immutable exam_versions
   durationMinutes: integer('duration_minutes').notNull(),
-  totalMarks: real('total_marks').notNull(),
-  passMarks: real('pass_marks').notNull(),
+  totalMarks: numeric('total_marks', { precision: 10, scale: 2 }).notNull(),
+  passMarks: numeric('pass_marks', { precision: 10, scale: 2 }).notNull(),
   instructions: text('instructions'),
   questionSource: varchar('question_source', { length: 32 }).notNull(), // 'existing_pool' | 'upload_pdf'
-  pdfQuestionPaperUrl: text('pdf_question_paper_url'),
+  pdfQuestionPaperObjectKey: text('pdf_question_paper_object_key'), // Private immutable key
   pdfQuestionCount: integer('pdf_question_count'),
   pdfAnswerSubmissionType: varchar('pdf_answer_submission_type', { length: 32 }), // 'omr' | 'text' | 'image_upload' | 'hybrid'
   allowedAttachmentFormats: jsonb('allowed_attachment_formats').$type<string[]>(), // ['pdf', 'jpg', 'png']
@@ -311,7 +262,7 @@ export const exams = pgTable('exams', {
     preventCopyPaste: boolean;
     fullScreenMode: boolean;
     detectTabSwitching: boolean;
-    autoSubmitOnTimeEnd: boolean;
+    autoSubmitOnTimeEnd: true; // Timed attempts always close on the server at their deadline
     allowResume: boolean;
     showTimer: boolean;
     allowCalculator: boolean;
@@ -325,7 +276,7 @@ export const exams = pgTable('exams', {
 
 export const examRecipients = pgTable('exam_recipients', {
   id: uuid('id').defaultRandom().primaryKey(),
-  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'cascade' }),
+  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'restrict' }),
   recipientType: varchar('recipient_type', { length: 32 }).notNull(), // 'class_wise' | 'student_wise'
   classId: uuid('class_id').references(() => classes.id),
   divisionId: uuid('division_id').references(() => divisions.id),
@@ -334,11 +285,13 @@ export const examRecipients = pgTable('exam_recipients', {
 
 export const examQuestions = pgTable('exam_questions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'cascade' }),
+  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'restrict' }),
   questionBankId: uuid('question_bank_id').references(() => questionBank.id),
   sectionName: varchar('section_name', { length: 128 }).default('Section A'),
   sequenceNumber: integer('sequence_number').notNull(),
-  marks: real('marks').notNull(),
+  examVersionId: uuid('exam_version_id').notNull(), // FK to exam_versions
+  contentSnapshot: jsonb('content_snapshot').notNull(), // Immutable prompt, stable option IDs, rubric and grading key; student DTO excludes secrets
+  marks: numeric('marks', { precision: 10, scale: 2 }).notNull(),
 });
 ```
 
@@ -346,9 +299,16 @@ export const examQuestions = pgTable('exam_questions', {
 ```typescript
 export const examAttempts = pgTable('exam_attempts', {
   id: uuid('id').defaultRandom().primaryKey(),
-  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'cascade' }),
-  studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }),
-  attemptNumber: integer('attempt_number').default(1),
+  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'restrict' }),
+  studentId: uuid('student_id').references(() => users.id, { onDelete: 'restrict' }),
+  attemptNumber: integer('attempt_number').default(1).notNull(),
+  examVersionId: uuid('exam_version_id').notNull(),
+  revision: integer('revision').default(0).notNull(),
+  sessionEpoch: integer('session_epoch').default(1).notNull(), // Fences replaced devices
+  deliveryManifest: jsonb('delivery_manifest').notNull(), // Persisted question/option order
+  accommodationSnapshot: jsonb('accommodation_snapshot').notNull(),
+  submittedRevision: integer('submitted_revision'),
+  submissionReceiptId: uuid('submission_receipt_id').unique(),
   startedAt: timestamp('started_at', { withTimezone: true }).defaultNow(),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   scheduledSubmissionTime: timestamp('scheduled_submission_time', { withTimezone: true }).notNull(),
@@ -363,21 +323,22 @@ export const examAttempts = pgTable('exam_attempts', {
 
 export const studentAnswers = pgTable('student_answers', {
   id: uuid('id').defaultRandom().primaryKey(),
-  attemptId: uuid('attempt_id').references(() => examAttempts.id, { onDelete: 'cascade' }),
-  questionId: uuid('question_id').references(() => examQuestions.id, { onDelete: 'cascade' }),
-  answerPayload: jsonb('answer_payload'), // { selectedOptionIndex, text, matchedPairs, placedSteps, blankAnswers }
+  attemptId: uuid('attempt_id').notNull().references(() => examAttempts.id, { onDelete: 'restrict' }),
+  questionId: uuid('question_id').notNull().references(() => examQuestions.id, { onDelete: 'restrict' }),
+  answerPayload: jsonb('answer_payload'), // Stable optionId, text, matchedPairs, placedSteps, blankAnswers
+  revision: integer('revision').default(0).notNull(),
   uploadedFiles: jsonb('uploaded_files').$type<Array<{
     fileId: string;
     fileName: string;
-    fileUrl: string;
+    objectKey: string; // Private object reference; generate read URL after authorization
     fileSize: string;
     uploadedAt: string;
   }>>(),
   status: varchar('status', { length: 32 }).default('answered'), // 'answered', 'marked_for_review', 'unanswered'
-  autoScore: real('auto_score'),
-  awardedScore: real('awarded_score'),
+  autoScore: numeric('auto_score', { precision: 10, scale: 2 }),
+  awardedScore: numeric('awarded_score', { precision: 10, scale: 2 }),
   teacherRemarks: text('teacher_remarks'),
-  rubricScores: jsonb('rubric_scores').$type<Record<string, number>>(),
+  rubricScores: jsonb('rubric_scores').$type<Record<string, string>>(), // Decimal score strings
   annotations: jsonb('annotations').$type<Array<{
     id: string;
     type: 'checkmark' | 'cross' | 'highlight' | 'comment';
@@ -396,19 +357,19 @@ export const studentAnswers = pgTable('student_answers', {
 ```typescript
 export const examResults = pgTable('exam_results', {
   id: uuid('id').defaultRandom().primaryKey(),
-  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'cascade' }),
-  studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }),
+  examId: uuid('exam_id').references(() => exams.id, { onDelete: 'restrict' }),
+  studentId: uuid('student_id').references(() => users.id, { onDelete: 'restrict' }),
   attemptId: uuid('attempt_id').references(() => examAttempts.id),
-  totalMaxMarks: real('total_max_marks').notNull(),
-  obtainedObjectiveMarks: real('obtained_objective_marks').default(0),
-  obtainedSubjectiveMarks: real('obtained_subjective_marks').default(0),
-  obtainedAttachmentMarks: real('obtained_attachment_marks').default(0),
-  totalObtainedMarks: real('total_obtained_marks').notNull(),
-  percentage: real('percentage').notNull(),
+  totalMaxMarks: numeric('total_max_marks', { precision: 10, scale: 2 }).notNull(),
+  obtainedObjectiveMarks: numeric('obtained_objective_marks', { precision: 10, scale: 2 }).default('0'),
+  obtainedSubjectiveMarks: numeric('obtained_subjective_marks', { precision: 10, scale: 2 }).default('0'),
+  obtainedAttachmentMarks: numeric('obtained_attachment_marks', { precision: 10, scale: 2 }).default('0'),
+  totalObtainedMarks: numeric('total_obtained_marks', { precision: 10, scale: 2 }).notNull(),
+  percentage: numeric('percentage', { precision: 7, scale: 4 }).notNull(),
   grade: varchar('grade', { length: 16 }),
   isPassed: boolean('is_passed').notNull(),
   rankInClass: integer('rank_in_class'),
-  workflowStep: varchar('workflow_step', { length: 32 }).default('eval_completed'), 
+  workflowStep: varchar('workflow_step', { length: 32 }).default('eval_completed'),
   // 'eval_completed' -> 'teacher_review' -> 'coordinator_approval' -> 'published'
   evaluatorId: uuid('evaluator_id').references(() => users.id),
   teacherApprovedBy: uuid('teacher_approved_by').references(() => users.id),
@@ -439,12 +400,12 @@ export const onlineClasses = pgTable('online_classes', {
   classId: uuid('class_id').references(() => classes.id),
   divisionId: uuid('division_id').references(() => divisions.id),
   instructorId: uuid('instructor_id').references(() => users.id),
-  date: date('date').notNull(),
-  startTime: time('start_time').notNull(),
-  endTime: time('end_time').notNull(),
+  startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+  endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+  displayTimezone: varchar('display_timezone', { length: 64 }).notNull(),
   durationMinutes: integer('duration_minutes').notNull(),
   platform: varchar('platform', { length: 32 }).notNull(), // 'in_app' | 'google_meet' | 'zoom' | 'ms_teams'
-  meetingLink: text('meeting_link').notNull(),
+  meetingLink: text('meeting_link'), // Required only for external meeting providers
   meetingId: varchar('meeting_id', { length: 128 }),
   passcode: varchar('passcode', { length: 64 }),
   status: varchar('status', { length: 32 }).default('scheduled'), // scheduled, live, completed, cancelled
@@ -468,8 +429,8 @@ export const liveInClassAssessments = pgTable('live_in_class_assessments', {
   title: varchar('title', { length: 255 }).notNull(),
   topic: varchar('topic', { length: 255 }).notNull(),
   durationSeconds: integer('duration_seconds').default(180), // 0 for untimed
-  totalMarks: real('total_marks').notNull(),
-  passMarks: real('pass_marks'),
+  totalMarks: numeric('total_marks', { precision: 10, scale: 2 }).notNull(),
+  passMarks: numeric('pass_marks', { precision: 10, scale: 2 }),
   status: varchar('status', { length: 32 }).default('draft'), // draft, active, closed, published
   launchedAt: timestamp('launched_at', { withTimezone: true }),
   questions: jsonb('questions'),
@@ -478,12 +439,12 @@ export const liveInClassAssessments = pgTable('live_in_class_assessments', {
 
 export const liveAssessmentSubmissions = pgTable('live_assessment_submissions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  assessmentId: uuid('assessment_id').references(() => liveInClassAssessments.id, { onDelete: 'cascade' }),
+  assessmentId: uuid('assessment_id').references(() => liveInClassAssessments.id, { onDelete: 'restrict' }),
   studentId: uuid('student_id').references(() => users.id),
   answers: jsonb('answers'),
-  totalScore: real('total_score').notNull(),
-  maxMarks: real('max_marks').notNull(),
-  percentage: real('percentage').notNull(),
+  totalScore: numeric('total_score', { precision: 10, scale: 2 }).notNull(),
+  maxMarks: numeric('max_marks', { precision: 10, scale: 2 }).notNull(),
+  percentage: numeric('percentage', { precision: 7, scale: 4 }).notNull(),
   status: varchar('status', { length: 32 }).default('submitted'), // 'submitted' | 'reviewed'
   teacherFeedback: text('teacher_feedback'),
   verifiedVia: varchar('verified_via', { length: 32 }), // 'nfc' | 'face' | 'both'
@@ -493,38 +454,105 @@ export const liveAssessmentSubmissions = pgTable('live_assessment_submissions', 
 
 ---
 
-## 5. Redis Architecture & Caching Strategy
+### 4.8 Mandatory constraints, indexes and supporting tables
 
-Redis provides ultra-low latency operations across key subsystems:
+The snippets above require the following schema work before implementation is complete. Generate reviewed migrations; do not copy the fragments as a finished schema. Use database constraints in addition to request validation.
 
-```mermaid
-graph LR
-    subgraph "Redis 7.2 Cache & In-Memory Store"
-        R1[Tenant Metadata & Route Cache<br/>`tenant:meta:{slug}`]
-        R2[JWT Session Token Blacklist<br/>`auth:blacklist:{jti}`]
-        R3[Live Exam Session State & Timer<br/>`exam:{id}:attempt:{studentId}`]
-        R4[Distributed Locks (Redlock)<br/>`lock:exam:submit:{attemptId}`]
-        R5[Pub/Sub Message Bus<br/>Channels: `live-quiz:{id}`, `proctor:{id}`]
-    end
+| Entity | Required fields / invariants / indexes |
+| :--- | :--- |
+| `exam_versions` | `(id, exam_id, version, published_at, policy_snapshot)`; unique `(exam_id, version)`; immutable after publication |
+| `exam_questions` | FK `exam_version_id`; immutable content and grading snapshot; unique `(exam_version_id, sequence_number)` and `(exam_version_id, id)`; prohibit mutation/deletion once used |
+| `exam_attempts` | Required exam/student/version FKs; unique `(exam_id, student_id, attempt_number)`; partial unique `(exam_id, student_id) WHERE status='in_progress'`; valid states; deadline not before start; index `(status, scheduled_submission_time, id)` for expiry scans |
+| `student_answers` | Required attempt/question FKs; unique `(attempt_id, question_id)`; nonnegative revision; verify question belongs to attempt version inside locked transaction; index supports loading all attempt answers |
+| `request_receipts` | `(attempt_id, idempotency_key, actor_id, session_epoch, operation, canonical_request_hash, response_json, created_at)`; unique `(attempt_id, idempotency_key)`; recorded in same transaction as mutation |
+| `outbox_events` | `(id, event_type, aggregate_id, aggregate_revision, payload, created_at, available_at, lease_until, lease_owner, dispatched_at, completed_at, retry_count, last_error)`; unique semantic event key; index on incomplete/available work |
+| `processed_events` | Unique `(consumer_name, event_id)` committed with consumer side effects; safe handling of duplicate dispatch |
+| `exam_results` | Unique `attempt_id`; `grading_version`, `source_revision`; decimal scores with configured rounding; optimistic version checks for grading and approval |
+| `enrollments` | Required user, academic year, class, division references; unique active membership as defined by school policy; eligibility query indexes |
+| `teacher_assignments`, `parent_student_links` | Explicit relationships for object authorization; unique relationship tuples |
+| `class_attendance` | Unique `(online_class_id, student_id)`; first/last seen, attendance duration and source; distinct append-only attendance events if audit required |
+| `live_assessment_submissions` | Unique `(assessment_id, student_id)` for single-attempt policy; immutable assessment question version and stable option IDs; receipt/revision protocol for resubmission |
+| `attachments` | Owner/tenant/attempt/question IDs, object key, checksum, byte size, media type, scan state, upload expiry, finalization time; unique object key; private storage |
+| `audit_events` | Actor, scope, action, before/after references, reason, request ID and timestamp; append-only permissions and retention |
+| `integration_inbox` | Unique `(integration_id, external_event_id)`; payload hash, received/processed timestamps and failure status |
+| `refresh_sessions` | Hashed refresh token, family, tenant/user, expiry, revoked time, rotation linkage; durable source of session revocation |
+| `exam_schedule_projection` (catalog) | Tenant, exam, version, starts/ends timestamps, expected participants, placement generation, updated time; unique `(tenant_id, exam_id)`; indexes on starts/ends |
+
+Set `.notNull()` on required relationships/statuses and use enum/check constraints for state transitions, nonnegative durations, score bounds, and recipient shapes (class assignment versus individual assignment). Allow nullable FKs only for explicitly optional relationships. Add uniqueness for one current academic year and one active accommodation record per student. Use a role mapping table if users may have multiple roles. Archive users/exams; retention deletion is a separate audited workflow, not cascading deletion of attempt evidence.
+
+Use `numeric` or integer scaled points for marks; application calculations use a decimal library or scaled integers, never binary float accumulation. Accommodation multipliers are validated and snapshotted into an absolute attempt deadline. Apply explicit rounding when converting duration to seconds. Schedule timestamps are UTC instants with an IANA display timezone; validate daylight-saving ambiguities at authoring time.
+
+Question search needs measured composite indexes (subject/chapter/type/difficulty) and full-text/GIN indexes only for actual query patterns. Add FK lookup indexes where needed; PostgreSQL does not create them automatically. Paginate lists with bounded limits and stable cursors. Test query plans using realistic tenant data; do not add every possible index to the hot answer table. Large telemetry/audit tables may use time partitioning and retention; partitioning is not a substitute for measured query design.
+
+## 5. Durable Exam Delivery & Concurrency Protocol
+
+### 5.1 Durability and failure contract
+
+For production, commit answer/receipt transactions with PostgreSQL WAL fsync enabled and synchronous replication to at least one eligible standby in a separate availability zone (`synchronous_commit=on` and an appropriate synchronous standby configuration, or verified equivalent managed-service guarantees). Acknowledge only after commit returns. Failover must fence the former primary and promote a standby containing acknowledged commits. If the required replica is unavailable, writes may block/fail within the request deadline; never silently downgrade durability. See the [PostgreSQL synchronous replication documentation](https://www.postgresql.org/docs/current/warm-standby.html#SYNCHRONOUS-REPLICATION).
+
+The target RPO is **zero acknowledged transactions lost for a covered single primary/AZ failure**. This is not a guarantee for total regional destruction, operator deletion, compromised credentials, or edits never received by the server. Regional disaster recovery uses separately stated backup/replication RPO/RTO in Section 12. Local development can use a single database but cannot advertise production durability.
+
+`200 saved` means the server committed the answer and its receipt. `200 submitted` means a final attempt snapshot is committed; grading may still be pending. Redis success, queue acceptance, and browser storage are not durable server receipts. An ambiguous timeout may occur after commit: retry the same request ID to obtain the original result. No Redis write-behind answer buffer is used in this design.
+
+### 5.2 Start, deadline and immutable delivery
+
+`POST /api/v1/exam-delivery/:examId/start` verifies enrollment, schedule and allowed attempts in a short transaction. A start idempotency key and uniqueness constraints prevent duplicate attempts. Return an existing in-progress attempt rather than allocating another on duplicate start. Under the exam policy, compute `deadline = min(exam.endsAt, startedAt + accommodated_duration)`; an approved extension beyond the exam window must explicitly override that cap and be audited. Persist question selection, stable option IDs/order, exam version, accommodation snapshot, deadline and session epoch. Do not regenerate randomization on resume or return correct answers/rubrics intended only for graders.
+
+Server time and the persisted deadline govern acceptance. Client countdown is a display periodically synchronized with server time. Workers are reminders, not the clock authority. An authenticated administrator may extend an active deadline in a locked transaction with audit/outbox update; terminal attempts require an explicit audited reopen policy and a new grading revision.
+
+### 5.3 Delta-save request and transaction
+
+`POST /api/v1/exam-delivery/:attemptId/auto-save`, with `Idempotency-Key` header:
+
+```json
+{
+  "sessionEpoch": 1,
+  "baseRevision": 12,
+  "changes": [
+    { "questionId": "uuid", "baseAnswerRevision": 3, "answerPayload": { "optionId": "option-b" }, "status": "answered" }
+  ]
+}
 ```
 
-### 5.1 Key Namespaces & TTL Policies
-1. **Tenant Lookup:** `tenant:meta:{slug}` (TTL: 1 hour, invalidated on tenant update).
-2. **Active Exam Attempt Heartbeat & Autosave Buffer:**
-   - Key: `exam:{examId}:attempt:{studentId}:answers` (Hash map of questionId ➔ answer payload).
-   - TTL: `Duration + 60 minutes`.
-   - Batch flushed to PostgreSQL asynchronously every 30 seconds via BullMQ queue to relieve direct DB writes under spike loads.
-3. **Authoritative Countdown Timer:**
-   - Key: `exam:{examId}:attempt:{studentId}:timer`
-   - Stored value: `{ "startedAt": 1772439800, "deadline": 1772443400, "extraMinutes": 15 }`
-   - Server calculation is authoritative: `remainingSec = max(0, deadline - unix_now())`.
-4. **BullMQ Background Queues:**
-   - `queue:auto-submission` (Scheduled delayed job matching exam deadline).
-   - `queue:webhook-outbound` (ERP sync dispatch with exponential backoff).
-   - `queue:pdf-watermark-split` (Splitting and serving watermarked PDFs).
-   - `queue:malpractice-evaluator` (ML audio/video anomaly analysis).
+Initial limits: 50 changed questions, 256 KiB request body, 64 KiB text answer, no attachment bytes. Exam policies may set smaller limits; larger accommodations require a reviewed configuration and payload load test. Return a clear validation error, never silently truncate. Send completed attachment IDs only; server validates ownership and finalized upload state.
 
----
+Transaction sequence (normative algorithm, not copy-paste application code):
+
+1. Authenticate, validate shape/body size, acquire a bounded tenant pool lease, and begin transaction. All mutation paths acquire the attempt row lock first (`SELECT ... FOR UPDATE`), including takeover, extension, expiry, and submission.
+2. Verify principal ownership and tenant. If a receipt exists for the same key/operation/actor and canonical request hash, return its stored response without repeating the mutation. A reused key with different content returns `409 IDEMPOTENCY_KEY_REUSED`.
+3. After lock acquisition, check current database wall-clock time, active state, session epoch and `baseRevision`. Do not use transaction-start time to authorize a request that waited past the deadline. Reject expired/terminal attempts and stale epochs. Bound lock waits so rejected work does not consume the whole exam window.
+4. Validate every question against the attempt's persisted manifest/version and every base answer revision. Reject the whole request on a conflict (`409 REVISION_CONFLICT` with current revisions and reload instructions); never silently overwrite.
+5. Perform one parameterized multi-row `INSERT ... ON CONFLICT (attempt_id, question_id) DO UPDATE` for the changed rows, increment answer revisions and the attempt revision once. Every writer uses this locking/revision protocol; request handlers cannot bypass it.
+6. Insert the receipt containing request hash, resulting attempt/answer revisions, and server timestamp in the same transaction. Commit with the required durability policy, then return the response. Release the lease in `finally`.
+
+```json
+{
+  "status": "saved",
+  "attemptRevision": 13,
+  "answerRevisions": { "uuid": 4 },
+  "savedAt": "2026-09-09T10:00:00Z"
+}
+```
+
+Receipts remain available throughout the attempt and at least seven days after submission; configure longer retention if the supported retry horizon requires it. Expired keys cannot mutate a terminal attempt. Save transactions must be short, with no external calls while holding locks. Use a consistent lock order across all related rows. Retry transient serialization/deadlock failures within a bounded deadline, preserving the same idempotency key.
+
+### 5.4 Submission, expiry and grading
+
+Manual submission accepts `sessionEpoch`, `baseRevision`, and optional final `changes` in the same shape/limits as save. The client serializes saves and submission. In one locked transaction, validate/apply final changes, transition the attempt from `in_progress` to `submitted`, freeze `submittedRevision`, create a stable receipt ID, and insert a uniquely keyed grading outbox event. Subsequent authenticated submissions return the existing terminal receipt; they never reapply supplied changes. A crash before response is recovered through the receipt/resume endpoint. Late manual requests return the server's expired/auto-submitted outcome, not a false successful manual submission.
+
+Deadline sweeper: poll indexed due attempts per tenant with bounded batches and leases/`SKIP LOCKED`. Lock each attempt, recheck its current deadline, atomically transition to `auto_submitted`, freeze the last committed revision, and insert the same class of unique grading event. Delayed BullMQ jobs can accelerate this but are not required for correctness. Maintain a tenant scan cursor so every active tenant is checked; resume after worker crashes. Recovery scans catch missed deadlines. An on-access expiry check may perform the same transition. Late sweeper execution never permits late answer writes.
+
+For deadline adjudication, the accepted transaction is one that acquired the attempt lock and passed the database clock check before the deadline; its commit may complete just afterward. Requests still queued at the deadline are rejected. Configure a short transaction deadline and document this rule to students. Never trust a client-supplied timestamp to admit offline edits.
+
+Grading reads only the committed submitted revision and immutable question snapshots. Consumers are idempotent by event ID and grading version; commit score changes and the processed-event marker together. Manual grading/overrides and four-stage approval use optimistic versions and append-only audit events. Only a published result emits a gradebook event; a corrected publication creates a newer revision, not a duplicate unversioned push.
+
+### 5.5 Offline and multiple-device behavior
+
+Client writes edits to tenant/user/attempt-scoped IndexedDB, debounces changed questions for 3 seconds with a 10-second maximum wait during continuous typing, and keeps one mutation request in flight per attempt. Clear only the exact local edit versions acknowledged by the server; newer local edits remain dirty. Explicit clear-answer operations must be represented, not omitted. Retry network/503/429 responses with exponential backoff, jitter, and `Retry-After`; reuse the same key and body for an ambiguous request.
+
+On resume, fetch the authoritative snapshot and receipt before sending queued work. Resolve ambiguous requests first. Revision conflict requires rebase/review of local edits; never blind last-write-wins. An explicit device takeover increments `sessionEpoch`; older devices become read-only and cannot overwrite newer work. On same-device reload retain the persisted queue/epoch and reconcile it with the server.
+
+Display “Saved on this device”, “Syncing”, “Saved to server”, and “Submission pending” distinctly. Preserve unsent work after network failure. Once the deadline has passed, quarantine late local edits for an auditable administrator review workflow; do not auto-merge or claim they were accepted. Upload/offline failure must be visible. Clear local copies after a confirmed receipt and the configured recovery period, or on explicit secure-device cleanup; warn before deleting unsent work.
 
 ## 6. Fastify Plugin & Route Architecture
 
@@ -537,7 +565,7 @@ src/
 │   ├── auth-guard.plugin.ts       # Validates JWT, sets req.user and req.role
 │   ├── error-handler.plugin.ts    # RFC 7807 Problem Details serialization
 │   ├── rate-limiter.plugin.ts     # Redis-backed sliding window rate limiter
-│   └── websocket.plugin.ts        # Fastify WebSocket multiplexer
+│   └── websocket.plugin.ts        # Socket.IO gateway integration
 ├── modules/
 │   ├── auth/                      # Login, Refresh, Password Reset, ERP Launch SSO
 │   ├── academic/                  # Years, Classes, Divisions, Subjects, Chapters
@@ -572,10 +600,12 @@ src/
 - `GET /student/available` - Filtered list of upcoming, active, and completed exams for authenticated student.
 
 #### Exam Delivery Engine (`/api/v1/exam-delivery`)
-- `POST /:id/start` - Pre-flight eligibility check, records attempt, initializes authoritative timer in Redis.
-- `POST /:id/auto-save` - High-frequency autosave endpoint storing incremental answer payloads.
-- `POST /:id/heartbeat` - Proctoring telemetry ping (tab switches, full-screen compliance, face presence).
-- `POST /:id/submit` - Final lock & attempt submission. Auto-triggers MCQ auto-grader.
+- `POST /:examId/start` - Idempotent eligibility check and durable attempt/deadline/manifest creation; returns existing active attempt on retry.
+- `POST /:attemptId/auto-save` - Versioned delta save; acknowledges only after database commit (Section 5).
+- `POST /:attemptId/heartbeat` - Proctoring telemetry ping (tab switches, full-screen compliance, face presence).
+- `POST /:attemptId/submit` - Atomic final delta + submission receipt + grading outbox event (Section 5).
+- `GET /:attemptId` - Authoritative resume snapshot, deadline, session epoch, revisions, manifest, and submission receipt.
+- `POST /:attemptId/takeover` - Explicit authenticated device takeover; increments session epoch under the attempt lock.
 
 #### Evaluation & 4-Step Approval (`/api/v1/evaluation`)
 - `GET /dashboard` - Filterable evaluation dashboard (`Not Started`, `In Progress`, `Completed`, `Published`).
@@ -593,567 +623,194 @@ src/
 
 ---
 
-## 7. ERP & 3rd-Party Integration Engine
+## 7. Asynchronous Work & Integration Reliability
 
-### 7.1 Inbound Webhook Listener
-- **Endpoint:** `POST /api/v1/webhooks/inbound/erp`
-- **Security:** HMAC-SHA256 signature verification over raw body using shared institutional secret key.
-- **Events Handled:**
-  - `student.created` / `student.updated` ➔ Auto-upserts user, class enrollment, and exam accommodations.
-  - `staff.created` / `staff.updated` ➔ Auto-upserts teacher role and subject allocations.
-  - `academic.class.updated` ➔ Syncs grades and division rosters.
+### 7.1 Transactional outbox and reconciliation
 
-### 7.2 Outbound Gradebook Push Worker
-- When an exam reaches `published` state, BullMQ queues an outbound push to the school ERP Gradebook API:
-```json
-{
-  "event": "exam.published",
-  "eventId": "evt_out_849201",
-  "timestamp": "2026-09-09T10:00:00Z",
-  "tenantId": "sch_dubai_01",
-  "data": {
-    "examCode": "MAT-G8-2026-001",
-    "examTitle": "Mathematics Chapter 3 Spot Test",
-    "totalMarks": 50,
-    "passMarks": 20,
-    "academicYear": "2026-2027",
-    "classId": "GRADE-08",
-    "divisionId": "DIV-A",
-    "results": [
-      {
-        "externalStudentId": "ERP_STU_84920",
-        "admissionNo": "ADM-2026-042",
-        "obtainedMarks": 44,
-        "percentage": 88.0,
-        "grade": "A",
-        "resultStatus": "pass",
-        "rank": 2
-      }
-    ]
-  }
-}
+Store domain state and its outbox event in the same tenant database transaction. An independently deployed dispatcher claims committed events in bounded batches with expiring leases and publishes deterministic job IDs containing tenant/event identity. Mark dispatch only after queue acknowledgement. A crash around acknowledgement may duplicate delivery; it cannot justify skipping an event.
+
+Queue contents are not the durable work ledger. Reconcile all incomplete events periodically, including events marked dispatched whose completion has not arrived within their processing SLA; re-enqueue missing/stalled jobs. Workers commit `processed_events` and domain effects together, then record completion. Duplicate jobs return the committed result. Use a separate consumer marker per destination when an event has multiple consumers. Retain ledger records beyond the queue retention/retry horizon.
+
+External APIs cannot participate in the database transaction. Use stable external idempotency keys where supported, persist delivery attempts and responses, and reconcile remote state after ambiguous timeouts. Where the provider lacks idempotency/reconciliation, flag uncertain delivery for operator review rather than claiming exactly-once behavior. Define exponential retry limits, dead-letter records, alerts, and replay tools.
+
+### 7.2 Queue isolation and fairness
+
+Separate exam-critical (expiry, grading), integration, reports/PDF, and media/proctoring workloads into independently bounded deployments/queues. Dispatcher and worker concurrency is constrained by each cell's connection budget; queue autoscaling must not overwhelm the database. Apply per-tenant admission, fair scheduling, job size limits, timeouts, and circuit breakers for slow external services. Store large job inputs in private object storage; put references in jobs.
+
+Use dedicated Redis for BullMQ with `maxmemory-policy=noeviction`, AOF, replicas/failover, memory headroom and alerts on failed writes. Persistence supports recovery but the outbox remains the authoritative replay source. Configure/test BullMQ connections, reconnect behavior, shutdown and Lua/cluster key placement against its [production guidance](https://docs.bullmq.io/guide/going-to-production). Cache workloads must not evict jobs. Sentinel provides HA; Redis Cluster also shards data. Choose a documented topology per deployment, not the ambiguous label “Cluster/Sentinel.” If clustering queues, enforce same-slot queue keys/hash tags and distribute queues deliberately; one queue does not automatically span shards.
+
+### 7.3 ERP and LTI contract
+
+Retain inbound `/api/v1/webhooks/inbound/erp` events for student/staff upserts and academic class updates. Verify HMAC over raw bounded request bytes with the correct tenant integration secret, signed timestamp tolerance, and replay protection. Persist a unique inbox record before returning acceptance; process asynchronously. Reject an existing event ID with a different payload hash. Enforce source revisions/order so stale updates cannot undo newer enrollment or role changes.
+
+Outbound `exam.published` includes event ID, tenant, exam/version, publication revision, and paginated/chunked results with stable chunk IDs. Retry with the same identity. Do not construct one unbounded 50,000-result webhook. A later correction emits a newer revision. Integrations use per-tenant credentials and allowlisted destinations with SSRF protections.
+
+LTI 1.3 requires registered issuer/client/deployment mappings, OIDC state/nonce validation, audience and signature verification with controlled JWKS refresh, and scoped service credentials for advantage services. ERP SSO verifies signature, timestamp and single-use nonce before JIT provisioning; roles are mapped through configured policy. Integration failure must not block existing exam saves. Validate these contracts against the dedicated integration documents during implementation; this PRD governs exam durability and tenant routing if older examples conflict.
+
+## 8. Security, Privacy & File Delivery
+
+JWT access tokens use RS256, issuer/audience validation, key rotation and a 15-minute lifetime. Refresh tokens are random, hashed in durable session records, rotated transactionally with token-family revocation and replay detection. Handle concurrent refresh through client serialization and a documented server retry policy. Default cookies: `HttpOnly`, `Secure`, `SameSite=Lax` or Strict where the flow permits; LTI embedding requires a separately tested cross-site session flow with CSRF defenses and browser cookie restrictions accounted for.
+
+Use a distinct revocation cache backed by durable session state, with at most 60-second validity and invalidation on revocation. Cache outage falls back to bounded durable checks; if freshness cannot be established, fail authenticated mutations closed. Include refresh/revocation traffic in load tests. Do not silently bypass auth to keep exams running.
+
+Permissions: administrators manage institutional configuration; coordinators approve/publish; assigned teachers author and grade; assigned proctors monitor; students access their own attempts; linked parents see published child results. Tenant provisioning is a platform-operator permission, not an institutional-admin privilege. All scope checks are server-side, including socket room joins and file URLs.
+
+Rate limits must support schools sharing a NAT IP. Starting account protection: five failed logins/minute per tenant/account with progressive delay and a separately sized aggregate IP abuse limit; do not cap all successful school logins at five/minute/IP. Autosave: 120/minute per active attempt with a small bounded burst and tenant/global admission limits. General routes use user/tenant limits plus high aggregate IP abuse thresholds. Document behavior during limiter outages; keep local emergency caps, and require durable auth checks for sensitive operations. Return 429 with retry guidance. Measure credential hashing CPU/memory independently and bound login concurrency.
+
+Validate schemas and lengths at ingress and service boundaries; parameterize SQL, including bulk writes. Sanitize rendered rich text with a maintained server-compatible sanitizer and safe output handling. Security headers and tenant CORS allowlists are explicit. For approved LMS embedding use route-specific CSP `frame-ancestors` and compatible frame headers; do not send contradictory `X-Frame-Options: DENY` on the embedded route. Protect cookie-authenticated mutations against CSRF.
+
+Private files: issue short-lived presigned upload URLs bound to tenant/user/attempt, type and size policy. Finalize by verifying object metadata, checksum and ownership; quarantine until malware/type checks complete. A timely finalized file reference may be committed with scan pending, but graders cannot open it until scan passes; scan rejection creates a visible remediation/audit event. Presign expiry is not exam-deadline authorization. Late finalization cannot modify a terminal attempt automatically. Run orphan upload cleanup after a recovery grace period.
+
+Store immutable object keys, not expiring URLs, in domain records. Signed CDN authorization must occur on every request before cache delivery; cache by immutable object version with a reviewed signature/cookie cache policy. Block public origin access and cross-tenant cache leakage. Never include grading keys in student payloads. Watermarked papers are pre-generated/background jobs and use distinct cache keys. Recordings use separate retention, authorization, encryption, storage and egress budgets.
+
+Use workload identity and secret manager/KMS, TLS with certificate verification, least-privilege per-tenant DB roles, and no CREATE DATABASE permission in API pods. Revoke unintended database CONNECT/PUBLIC permissions and test cross-tenant access. Keep privileged provisioning/migrations in isolated jobs. Redact tokens, credentials, answer contents and biometric data from logs. Biometrics/proctoring media are disabled until retention, access, consent and deletion requirements are explicitly approved by the institution; database layout alone establishes no compliance certification.
+
+## 9. Tenant Lifecycle & Migrations
+
+Provisioning is an asynchronous operator-authorized state machine: `requested → provisioning → migrating → seeding → active`, with `failed` and resumable step records. Use an idempotent tenant ID, restricted runtime role, secret creation, selected cell, reviewed schema and initial admin setup. Activate routing only after validation; compensate partial resources safely. Domain ownership verification defaults to false until proven.
+
+Migrate through a bounded orchestrator: canary tenant, per-tenant migration lock, schema-version tracking, retry/failure records, `try/finally` connection cleanup, and controlled concurrency per cell. Stop rollout on migration error/latency regression. Use expand/backfill/contract compatible with old and new app revisions; defer destructive operations until all readers migrate. Long backfills run in small resumable batches. Schedule locks/index changes outside active exams where possible; use lock/statement timeouts and validate rollback or forward-repair procedures.
+
+Catalog and tenant schema versions are independent. Routing rejects unsupported schema versions without corrupting data. Tenant restore is performed to a separate database/cluster, verified, then switched through the fenced placement procedure. PITR of a shared cluster affects all its databases; individual tenant restore usually requires restoring a temporary cluster and extracting that tenant. Test this workflow with attachments and outbox reconciliation, not just SQL rows.
+
+## 10. Realtime & Media Scaling
+
+Use Socket.IO end-to-end with compatible server/client and Redis adapter versions. Use WebSocket transport initially; if HTTP long-polling fallback is enabled, configure/test sticky sessions. The Redis adapter does not provide connection-state recovery; clients reconnect and fetch durable state using sequence/revision cursors. See the [Socket.IO Redis adapter documentation](https://socket.io/docs/v4/redis-adapter/).
+
+Rooms: `tenant:{tenantId}:class:{classId}`, `tenant:{tenantId}:exam:{examId}:proctor`, and `tenant:{tenantId}:assessment:{assessmentId}`. Reauthorize joins and token refresh; never accept arbitrary client-supplied room membership. Persist critical quiz launch/close decisions before broadcasting and support snapshot resync; ephemeral presence may be lost. Pub/sub interruption affects live updates, not committed answers.
+
+Use event sequence IDs, bounded per-socket buffers, client ACK/resync policy for critical notifications, payload limits, and slow-consumer disconnection. Coalesce teacher progress updates to at most one aggregate/class/second initially; do not broadcast every student's heartbeat to every student. Heartbeats have jittered 15-second cadence and server-side enforcement. Gateway autoscaling uses active connections, event-loop lag, egress, and fanout queue depth; reconnects use exponential jitter. Drain gateways by removing readiness, notifying clients, and allowing bounded reconnection before close.
+
+Audio/video does not travel through Fastify, Redis pub/sub or BullMQ. Use a managed SFU and TURN service initially; qualify participants/room, concurrent publishers/viewers, bitrate, TURN relay ratio, recording workers and regional egress separately. External Meet/Zoom/Teams adapters require tested provider capabilities and credentials; do not assume every provider supports iframe embedding. Media outages must leave exam delivery available.
+
+## 11. Scheduled and Reactive Scaling
+
+Publish schedule changes through a tenant outbox into the catalog's `exam_schedule_projection`; periodically reconcile to repair missing projections. Store absolute start/end times and participant estimates resolved from recipient/enrollment snapshots. Accommodations, active attempts, spot exams and extensions update capacity forecasts. Stale or missing forecasts trigger conservative headroom and alerts.
+
+Example projection query (catalog SQL, not tenant-schema SQL):
+
+```sql
+SELECT tenant_id, exam_id, expected_participants, starts_at, ends_at
+FROM exam_schedule_projection
+WHERE starts_at <= NOW() + INTERVAL '20 minutes'
+  AND ends_at >= NOW() - INTERVAL '30 minutes';
 ```
 
----
-
----
-
-## 8. Comprehensive Security Architecture & Hardening
-
-Security is paramount in an educational assessment platform where student data privacy (FERPA, GDPR, COPPA) and exam academic integrity are legally binding.
-
-```mermaid
-graph TD
-    subgraph "External Threats & Ingress"
-        Attackers[DDoS / Brute Force / Token Theft / SQLi] --> WAF[Cloudflare / AWS WAF]
-    end
-
-    subgraph "Fastify Security Perimeter"
-        WAF --> Helmet[Fastify Helmet - HSTS, CSP, X-Frame DENY]
-        Helmet --> RateLimit[Redis Sliding Window Rate Limiter]
-        RateLimit --> Cors[Strict CORS Tenant Domain Whitelist]
-        Cors --> TenantResolver[Tenant Resolution & DB Sandbox]
-    end
-
-    subgraph "Authentication & Authorization Engine"
-        TenantResolver --> AuthGuard[JWT RS256 Verification & Redis JTI Blacklist]
-        AuthGuard --> RbacGuard[RBAC & Scope Permission Guard]
-    end
-
-    subgraph "Data & Execution Layer"
-        RbacGuard --> Validation[TypeBox / Zod Schema Validation]
-        Validation --> DrizzleORM[Drizzle Parameterized SQL Queries]
-        DrizzleORM --> TenantDB[(Tenant PostgreSQL DB)]
-    end
-```
-
-### 8.1 Authentication & Token Lifecycle
-1. **Asymmetric Key Pairs (RS256):**
-   - Access tokens are signed with institutional/system private keys and verified with public keys.
-   - **Access Token TTL:** 15 minutes (short-lived to prevent stolen token reuse).
-   - **Refresh Token TTL:** 7 days, stored exclusively in `HttpOnly`, `Secure`, `SameSite=Strict` cookies.
-2. **Refresh Token Rotation & Revocation:**
-   - Every refresh request invalidates the old refresh token and issues a new pair.
-   - Token family tracking in Redis: If a revoked refresh token is presented, all sessions for that user are immediately purged (mitigating token theft).
-   - Immediate logout/revocation checks Redis blacklist: `auth:blacklist:{jti}` with TTL matching the access token lifetime.
-3. **ERP Single Sign-On (SSO) Launch Handshake:**
-   - External ERP signs launch requests with HMAC-SHA256 or RS256 containing `userId`, `role`, `timestamp`, and `nonce`.
-   - Replay protection: Nonces are checked against Redis with a 5-minute TTL.
-
-### 8.2 Role-Based Access Control (RBAC) & Permissions Matrix
-
-The platform enforces a 6-tier governance model with granular privilege separation:
-
-| Permission / Action | Admin | Coordinator | Teacher | Proctor | Student | Parent |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Manage Tenant & Subscriptions** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Academic Hierarchy Setup** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **User & Roster Management** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Create & Edit Question Pool** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Create & Schedule Exams** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Upload PDF Question Papers** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Live Classroom Hosting** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Launch Live In-Class Assessment** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Live Exam Proctoring & Alerts** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Evaluate Answers & Rubrics** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Override Evaluated Marks** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Approve Exam Results** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Publish Results to Students** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Attend Exams & Submit Answers** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **View Published Results** | ✅ | ✅ | ✅ | ❌ | ✅ (Self) | ✅ (Child) |
-
-```typescript
-// Fastify RBAC Hook Implementation
-export function requirePermissions(...allowedRoles: UserRole[]) {
-  return async (req: FastifyRequest, reply: FastifyReply) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return reply.status(403).send({
-        type: 'https://api.platform.edu/errors/forbidden',
-        title: 'Forbidden',
-        status: 403,
-        detail: `User role '${req.user?.role}' does not have sufficient privileges for this endpoint.`,
-      });
-    }
-  };
-}
-```
-
-### 8.3 Multi-Tenant Database Isolation & Data Leak Prevention
-1. **Dynamic Connection Sandboxing:**
-   - Every incoming HTTP request resolves the tenant database connection during Fastify's `preHandler` hook.
-   - The connection is attached directly to `request.tenantDb`. Handlers never construct ad-hoc connections.
-   - If a tenant cannot be securely resolved, the request fails with `400 Bad Request` or `404 Tenant Not Found` before any database queries execute.
-2. **Master Catalog Credential Encryption:**
-   - All tenant database credentials in `master_catalog_db` are encrypted at rest using AES-256-GCM with master key rotation:
-   $$\text{Ciphertext} = \text{AES-256-GCM}(\text{Plaintext}, \text{MasterKey}, \text{IV})$$
-3. **Preventing Cross-Tenant Leaks:**
-   - Because tenants reside in separate physical PostgreSQL databases, cross-tenant SQL injection or accidental omission of `WHERE tenant_id = ...` is physically impossible.
-
-### 8.4 Threat Modeling & OWASP Top 10 Protections
-1. **SQL Injection:** Mitigated 100% via Drizzle ORM's parameterized AST queries. Zero raw string concatenation permitted in queries.
-2. **Denial of Service (DoS) & Tiered Rate Limiting:**
-   - Redis sliding-window rate limiting via `@fastify/rate-limit`:
-     - Login & Auth endpoints: 5 requests / minute per IP.
-     - Autosave endpoint: 120 requests / minute per student session.
-     - Telemetry heartbeat: 60 requests / minute per student session.
-     - General REST endpoints: 100 requests / minute per IP.
-3. **Payload Sanitization & Type Enforcement:**
-   - All request bodies, query params, and route headers are strictly compiled and validated using `@fastify/type-provider-typebox`.
-   - Rich text inputs (e.g. Essay submissions, Teacher remarks) are sanitized using `DOMPurify` to neutralize XSS vectors.
-4. **Security Headers (`@fastify/helmet`):**
-   - `Content-Security-Policy`: Default strict directives.
-   - `X-Frame-Options`: `DENY` (prevents clickjacking, except when embedded in allowed LTI LMS iframes with explicit frame-ancestors).
-   - `Strict-Transport-Security`: `max-age=63072000; includeSubDomains; preload`.
-
----
-
-## 9. Dynamic Tenant Provisioning & Migration Engine
-
-### 9.1 Tenant Provisioning Flow (`POST /api/v1/admin/tenants`)
-When a new educational institution subscribes:
-1. **Catalog Entry:** Fastify creates a record in `master_catalog_db.tenants`.
-2. **Database Provisioning:** Fastify executes a privileged administrative SQL command to create the isolated tenant database:
-   ```sql
-   CREATE DATABASE school_al_amal_db OWNER app_tenant_user;
-   ```
-3. **Automated Migration Runner:** Drizzle Kit migrations are applied to initialize the complete tenant schema.
-4. **Default Seed Data:** Academic structure template, default grading scales, and administrator account are created.
-
-### 9.2 Multi-Tenant Drizzle Migration Runner Script
-```typescript
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { masterDb } from '../core/db/master';
-import { tenants } from '../core/db/master/schema';
-
-export async function runMigrationsAcrossAllTenants() {
-  const allTenants = await masterDb.select().from(tenants).where(eq(tenants.status, 'active'));
-
-  for (const tenant of allTenants) {
-    console.log(`[MIGRATION] Running migrations for tenant: ${tenant.tenantSlug}...`);
-    const pool = new Pool({
-      host: tenant.dbHost,
-      port: tenant.dbPort,
-      database: tenant.dbName,
-      user: tenant.dbUser,
-      password: decryptCredentials(tenant.dbPasswordEncrypted),
-    });
-
-    const tenantDb = drizzle(pool);
-    await migrate(tenantDb, { migrationsFolder: './drizzle/tenant-migrations' });
-    await pool.end();
-    console.log(`[MIGRATION] Completed for ${tenant.tenantSlug}`);
-  }
-}
-```
-
----
-
-## 10. Error Handling, Logging & Observability
-
-### 10.1 RFC 7807 Problem Details Standard
-All API errors return RFC 7807 compliant JSON payloads:
-
-```json
-{
-  "type": "https://api.platform.edu/errors/validation-failed",
-  "title": "Unprocessable Entity",
-  "status": 422,
-  "detail": "Configured question marks total (45) does not match total exam marks (50).",
-  "instance": "/api/v1/exams/create",
-  "invalidParams": [
-    {
-      "name": "calculatedTotalMarks",
-      "reason": "Must equal totalMarks"
-    }
-  ]
-}
-```
-
-### 10.2 Structured Logging with Pino
-- Structured JSON logs with automated correlation IDs (`req.id`).
-- Sensitive data redaction (`password`, `token`, `smartCardUid`, `faceEmbedding`, `rawAnswerPayload`).
-
----
-
-## 11. Environment Configuration Specification (`.env.example`)
-
-Developers can copy this exact `.env` file to immediately initialize backend services:
-
-```ini
-# ==============================================================================
-# SERVER & ENVIRONMENT
-# ==============================================================================
-NODE_ENV=development
-PORT=4000
-HOST=0.0.0.0
-APP_BASE_URL=http://localhost:4000
-CLIENT_BASE_URL=http://localhost:5173
-
-# ==============================================================================
-# MASTER CATALOG DATABASE (POSTGRESQL)
-# ==============================================================================
-MASTER_DB_HOST=localhost
-MASTER_DB_PORT=5432
-MASTER_DB_NAME=master_catalog_db
-MASTER_DB_USER=postgres
-MASTER_DB_PASSWORD=postgres_master_secure
-MASTER_DB_SSL=false
-MASTER_DB_MAX_CONNECTIONS=10
-
-# Master Encryption Key for Stored Tenant DB Credentials (32-byte hex)
-TENANT_CREDENTIALS_MASTER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-
-# ==============================================================================
-# REDIS CLUSTER / INSTANCE
-# ==============================================================================
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB_INDEX=0
-
-# ==============================================================================
-# AUTHENTICATION & ASYMMETRIC JWT
-# ==============================================================================
-JWT_ALGORITHM=RS256
-JWT_PUBLIC_KEY_PATH=./keys/jwt-public.pem
-JWT_PRIVATE_KEY_PATH=./keys/jwt-private.pem
-JWT_ACCESS_TOKEN_EXPIRY=15m
-JWT_REFRESH_TOKEN_EXPIRY=7d
-COOKIE_SECRET=super_secret_cookie_signing_token_change_in_prod
-
-# ==============================================================================
-# ERP WEBHOOK & LTI INTEGRATION
-# ==============================================================================
-DEFAULT_WEBHOOK_SECRET=whsec_staging_school_secret_key_84920
-WEBHOOK_TIMESTAMP_TOLERANCE_SEC=300
-LTI_KEYSET_URL=https://canvas.school.edu/api/lti/security/jwks
-
-# ==============================================================================
-# OBJECT STORAGE (AWS S3 / MINIO)
-# ==============================================================================
-S3_ENDPOINT=http://localhost:9000
-S3_REGION=us-east-1
-S3_BUCKET_NAME=school-assessment-storage
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_FORCE_PATH_STYLE=true
-```
-
----
-
-## 12. Project Scaffolding & Bootstrap Guide
-
-To start backend development immediately:
-
-### 12.1 Recommended `package.json` Dependencies
-```json
-{
-  "name": "assessment-platform-backend",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsup src/server.ts --format cjs,esm --clean",
-    "start": "node dist/server.js",
-    "db:master:generate": "drizzle-kit generate:pg --schema=src/core/db/master/schema.ts --out=./drizzle/master",
-    "db:master:migrate": "tsx src/core/db/master/migrate.ts",
-    "db:tenant:generate": "drizzle-kit generate:pg --schema=src/core/db/tenant/schema.ts --out=./drizzle/tenant",
-    "db:tenant:migrate-all": "tsx src/core/db/tenant/migrate-all.ts",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
-  },
-  "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/helmet": "^11.1.1",
-    "@fastify/rate-limit": "^9.1.0",
-    "@fastify/type-provider-typebox": "^4.0.0",
-    "@fastify/websocket": "^9.0.0",
-    "@sinclair/typebox": "^0.32.15",
-    "argon2": "^0.40.1",
-    "bullmq": "^5.4.1",
-    "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.30.4",
-    "fastify": "^4.26.2",
-    "fastify-plugin": "^4.5.1",
-    "ioredis": "^5.3.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "pino": "^8.19.0"
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.11.24",
-    "@types/pg": "^8.11.2",
-    "drizzle-kit": "^0.20.14",
-    "tsup": "^8.0.2",
-    "tsx": "^4.7.1",
-    "typescript": "^5.3.3",
-    "vitest": "^1.3.1"
-  }
-}
-```
-
----
-
-## 13. High Concurrency, Scalability & Load Management Architecture
-
-Online examinations present an extreme traffic profile: **hours of low baseline activity punctuated by sudden, massive spikes (the "Thundering Herd" problem)** where tens of thousands of students start, save, and submit exams at the exact same minute.
-
-```mermaid
-graph TD
-    subgraph "Clients (50,000+ Concurrent Students)"
-        Students[50k+ Concurrent Test-Takers]
-    end
-
-    subgraph "Edge & Ingress (Traffic Smoothing)"
-        Students --> CDN[Cloudflare / CloudFront CDN - Static Assets & PDF Papers]
-        Students --> ALB[AWS Application Load Balancer / NGINX Ingress]
-    end
-
-    subgraph "Stateless Compute Cluster (Autoscaling)"
-        ALB --> Pod1[Fastify Pod 1]
-        ALB --> Pod2[Fastify Pod 2]
-        ALB --> PodN[Fastify Pod N (HPA Autoscaled 5 -> 50 Pods)]
-    end
-
-    subgraph "Ultra-Fast In-Memory Layer (100k+ IOPS)"
-        Pod1 --> RedisCluster[Redis 7.2 Cluster / Sentinel]
-        Pod2 --> RedisCluster
-        PodN --> RedisCluster
-        RedisCluster -->|Write-Behind Async Buffer| BullMQWorkers[BullMQ Batch Persistence Workers]
-    end
-
-    subgraph "Database Connection Pooling Layer"
-        Pod1 -.-> PgBouncer[PgBouncer Pooler - Transaction Mode]
-        PodN -.-> PgBouncer
-        BullMQWorkers --> PgBouncer
-    end
-
-    subgraph "Isolated PostgreSQL Databases"
-        PgBouncer --> TenantDB1[(Tenant DB: School A)]
-        PgBouncer --> TenantDB2[(Tenant DB: School B)]
-        PgBouncer --> TenantDBN[(Tenant DB: School N)]
-    end
-```
-
-### 13.1 Spiky Load Profile Analysis & Mitigation
-
-| Exam Phase | Concurrency Event | Potential Bottleneck | Architectural Solution |
-| :--- | :--- | :--- | :--- |
-| **Phase 1: Exam Start (T - 2 min)** | 10,000–50,000 students clicking "Start Exam" within 60 seconds. | Auth DB lookup stampede, Master DB connection exhaustion. | **Redis Metadata Caching:** Tenant DB credentials and exam metadata cached in Redis (`TTL: 1h`). Authenticated JWT tokens verified statelessly via RS256 public key without DB read. |
-| **Phase 2: Question Delivery (T + 0 min)** | 50,000 simultaneous question paper & PDF downloads. | File storage I/O and network bandwidth saturation. | **CDN Edge Delivery:** Question paper PDFs are cached on CloudFront/Cloudflare with presigned, short-lived URLs. Fastify never streams heavy PDF bytes directly. |
-| **Phase 3: Active Exam (T + 1 to 60 min)** | Autosave ping every 10–15s: **~3,300 to 5,000 writes/sec** + proctoring heartbeats. | PostgreSQL disk write I/O collapse and lock contention. | **Redis Write-Behind Buffer:** Answers written exclusively to Redis in <2ms. BullMQ batches changes to PostgreSQL in 30s intervals. Zero direct DB writes during testing. |
-| **Phase 4: Exam End (T + 60 min)** | 50,000 auto-submits hitting within 10 seconds. | Deadlocks, connection timeouts, double submissions. | **Redlock Distributed Locking + Async Submission Queue:** Fastify locks attempt ID, writes final state to Redis, returns `200 OK` in <10ms, and queues grading via BullMQ. |
-
----
-
-### 13.2 Multi-Tenant Database Connection Pooling (PgBouncer Strategy)
-
-In a database-per-tenant architecture, if 20 Fastify pod instances each open 15 connections to 100 tenant databases, PostgreSQL would require:
-$$\text{Total Connections} = 20 \times 15 \times 100 = 30,000 \text{ connections}$$
-This would cause immediate PostgreSQL memory exhaustion and crash the database server.
-
-#### The Solution: PgBouncer in Transaction Pooling Mode
-1. **Transaction Pooling:** PgBouncer holds connections to PostgreSQL and assigns a physical connection to a client **only for the duration of a single database transaction**. Once the query completes, the connection returns to the pool immediately.
-2. **Server-Side Connection Cap:**
-   - Fastify connects to PgBouncer instead of raw PostgreSQL.
-   - Each tenant database in PostgreSQL is allocated a strict physical ceiling of **20–30 physical connections**, comfortably supporting up to **5,000 concurrent students per tenant**.
-3. **Application Pool Pruning (LRU Cache):**
-   - Fastify's `TenantConnectionManager` maintains an in-memory LRU pool with a 15-minute idle timeout. Unused tenant pools are destroyed automatically.
-
-```ini
-# pgbouncer.ini (Transaction Pooling Mode)
-[databases]
-* = host=postgres-primary port=5432 auth_user=pgbouncer_auth
-
-[pgbouncer]
-listen_port = 6432
-listen_addr = 0.0.0.0
-auth_type = scram-sha-256
-pool_mode = transaction
-max_client_conn = 10000
-default_pool_size = 20
-min_pool_size = 5
-reserve_pool_size = 5
-reserve_pool_timeout = 5
-server_idle_timeout = 60
-```
-
----
-
-### 13.3 High-Throughput Write-Behind Autosave Engine
-
-To prevent database disk thrashing during high-volume testing:
-
-```typescript
-// 1. Fastify Autosave Route: Sub-5ms Redis Write
-fastify.post('/api/v1/exam-delivery/:id/auto-save', async (req, reply) => {
-  const { examId, studentId, answers } = req.body;
-  const timestamp = Date.now();
-
-  const pipeline = redis.pipeline();
-
-  // Store in Redis Hash (O(1) write)
-  pipeline.hset(
-    `exam:${examId}:answers:${studentId}`,
-    'payload', JSON.stringify(answers),
-    'updatedAt', timestamp
-  );
-
-  // Add student ID to dirty set for background sync
-  pipeline.sadd(`exam:${examId}:dirty_students`, studentId);
-
-  await pipeline.exec();
-
-  return reply.status(200).send({ status: 'buffered', savedAt: timestamp });
-});
-
-// 2. BullMQ Worker: Batched PostgreSQL Flushing (Runs every 30s)
-export async function flushExamBufferToPostgres(examId: string, tenantId: string) {
-  const dirtyStudentIds = await redis.spop(`exam:${examId}:dirty_students`, 100); // 100 students per batch
-  if (!dirtyStudentIds.length) return;
-
-  const tenantDb = await TenantConnectionManager.getTenantDb(tenantId);
-
-  const batchUpdates = await Promise.all(
-    dirtyStudentIds.map(async (studentId) => {
-      const data = await redis.hget(`exam:${examId}:answers:${studentId}`, 'payload');
-      return { studentId, examId, payload: JSON.parse(data!) };
-    })
-  );
-
-  // Single bulk UPSERT query in PostgreSQL
-  await tenantDb.transaction(async (tx) => {
-    for (const record of batchUpdates) {
-      await tx.insert(studentAnswers)
-        .values(record)
-        .onConflictDoUpdate({
-          target: [studentAnswers.attemptId, studentAnswers.questionId],
-          set: { answerPayload: record.payload, lastAutoSavedAt: new Date() }
-        });
-    }
-  });
-}
-```
-
----
-
-### 13.4 Real-Time WebSockets Scalability & Pub/Sub Fanout
-
-For live classrooms, proctoring telemetry, and in-class spot assessments:
-1. **Redis Pub/Sub Adapter:** Fastify WebSocket instances share a distributed Redis Pub/Sub backplane (`@socket.io/redis-adapter` / `ioredis`).
-2. **Channel Namespacing:**
-   - `tenant:{id}:class:{classId}` - Live classroom audio/video state & chat.
-   - `tenant:{id}:exam:{examId}:proctor` - Teacher proctoring alert feed.
-   - `tenant:{id}:assessment:{assessmentId}` - Real-time student progress telemetry.
-3. **Heartbeat Throttling:** Client pings are limited to 1 ping per 15s. Telemetry bursts (e.g. rapid tab switches) are debounced on the client before network transmission.
-
----
-
-### 13.5 Kubernetes / Cloud Autoscaling Parameters (HPA)
-
-To ensure elastic capacity during school examination hours:
-
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: fastify-assessment-api-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: fastify-assessment-api
-  minReplicas: 4      # Baseline capacity for off-peak hours
-  maxReplicas: 60     # Elastic ceiling for national examination days
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 65
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 75
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 0 # Immediate scale up on spike
-      policies:
-      - type: Percent
-        value: 100                 # Double pods rapidly
-        periodSeconds: 15
-    scaleDown:
-      stabilizationWindowSeconds: 300 # 5-minute cool down to prevent thrashing
-```
-
----
-
-### 13.6 Concurrency Benchmarks & Target Capacity
-
-| Metric | Target SLA / Capacity | Architecture Enabler |
+Plan for overlapping exams, login/start ramps and late sessions. Pre-warm nodes, API/gateway pods, poolers and verified metadata 15–20 minutes before a scheduled peak, based on measured provisioning time. Initial baseline: at least two on-demand API replicas across zones, separate redundant critical workers/realtime gateways as required. Replica count is computed from measured safe throughput per pod and cell limits, not a fixed students-to-pods ratio.
+
+A single scaling authority combines scheduled minimum capacity and reactive demand (for example an HPA/KEDA setup with one owner for replica count). Do not have a cron scaler and independent HPA overwrite each other. Set resource requests/limits and provision nodes; HPA alone cannot create capacity on full nodes. Reactive signals: request rate/p99, CPU/event-loop lag, pool waits, gateway connections, queue age and backlog. Queue scale-out is capped by database and downstream budgets.
+
+Use Spot only for interruptible surplus with on-demand fallback; maintain sufficient tested on-demand capacity for active exams. Warmup is conditional on verified ready capacity; if unavailable, alert and activate the admission/incident plan. No claim that all traffic is scheduled or that boot is always under three seconds.
+
+Scale down only when active attempts/connections and critical work permit it. Stop admission/readiness, drain in-flight requests, close leases/pools, and handle ambiguous commits through receipts. Worker leases expire/retry after termination. Use disruption budgets, topology spread and a termination grace period longer than the bounded request duration. Retain standby capacity for reconnect bursts and unscheduled quizzes.
+
+Admission control: per-attempt single mutation, bounded per-tenant/process queues, cell-wide pool caps, statement/lock timeouts and circuit breakers. Prefer shedding reports/imports and delaying new starts to interrupting active saves. Return 503/429 with jittered retry advice before unbounded memory/connection growth. If service failure crosses a deadline, preserve local edits and require an audited extension/recovery decision; do not silently change timestamps.
+
+## 12. Availability, Observability & Recovery
+
+| Failure | Required behavior and recovery |
+| :--- | :--- |
+| API crash / lost response | Retry same key; return committed receipt or execute once |
+| PostgreSQL primary/AZ loss | Fence old primary; promote eligible synchronous replica; reconnect through writer endpoint; no acknowledged loss within covered failure model |
+| Required synchronous replica unavailable | Bounded write unavailability, visible retry state; no automatic asynchronous durability downgrade |
+| Queue Redis unavailable/lost | Saves/submissions still commit; DB outbox accumulates; expiry database sweeper continues; reconstruct jobs when recovered |
+| Cache/pubsub unavailable | Bounded authoritative lookup fallback; realtime resync; protect DB from cache-miss stampede |
+| Worker crash / duplicate job | Expiring claim, replay, idempotent effect + completion transaction |
+| Catalog unavailable | Existing fresh verified routes only within freshness policy; no unknown tenant access |
+| Region loss / operator error | Execute independently tested backup/PITR and object restore runbook |
+
+Initial engineering targets: covered DB failover RTO ≤5 minutes; regional recovery RPO ≤5 minutes and RTO ≤4 hours. These are acceptance targets, not inherited guarantees from choosing a cloud product. Qualify backup/WAL/object replication and network topology to achieve them; otherwise publish the measured weaker tier before deployment. Maintain encrypted daily base backups plus continuous WAL archiving and at least 35-day PITR retention, with separate-region/account protection. Object versioning/replication and application retention must align. Test restoration quarterly and before material topology changes; record results and integrity checks for receipts, answers and attachments.
+
+Instrument request IDs and traces across HTTP, transactions, outbox, queue, and webhooks. Collect save/submit/start latency histograms and errors, lock/pool waits, active attempts/connections, WAL/fsync latency, disk/IOPS/headroom, autovacuum lag, synchronous replica health, outbox oldest age, overdue submissions, worker retries/dead letters, Redis memory/rejections, event-loop lag, reconnect rate and CDN/media egress. Avoid unbounded user/attempt metric labels; use sampled traces and controlled tenant drill-down.
+
+Alert on any acknowledged-answer mismatch, unhealthy required replica, outbox age >60 seconds, overdue expiry >30 seconds, persistent pool wait, disk exhaustion forecast and sustained latency/error-budget burn. Provide runbooks, escalation ownership, tenant blast-radius view and pre-exam readiness checks. `/health/live` tests process health only; `/health/ready` uses cached bounded dependency/writer-route checks and shutdown state, not a database query to every tenant. Redis queue outages must not unnecessarily remove healthy answer API pods.
+
+## 13. Capacity Model & Qualification Gates
+
+### 13.1 Workload inputs
+
+Before sizing, capture tenants and largest-tenant share, question/essay mix, answer bytes, changed questions per save, edit cadence, heartbeat frequency, attempt length, start/submit burst width, reconnect rate, session refresh, login hashing cost, report demand, file size and media participation. Delta saves reduce writes only for unchanged answers; no fixed percentage reduction is assumed.
+
+Planning equations:
+
+- `save_requests_per_second = active_attempts × fraction_editing / mean_save_interval_seconds`.
+- `answer_rows_per_second = save_requests_per_second × mean_changed_questions_per_request` (plus attempt and receipt writes; include WAL/index amplification).
+- `heartbeat_requests_per_second = connected_students / heartbeat_interval_seconds`.
+- `start_or_submit_peak = affected_attempts / burst_window_seconds`.
+- `required_connections ≈ DB_transactions_per_second × mean_connection_hold_seconds`, then apply measured headroom and validate p99 wait; this is a planning estimate, not a sizing guarantee.
+- `API_replicas = ceil(peak_request_rate / measured_safe_rate_per_replica)`, additionally constrained by cell/connection budgets and one-failure capacity.
+
+Stress envelope at 50,000 active attempts: all clients change an answer every 10 seconds → 5,000 save requests/sec; 15-second heartbeats → about 3,333 heartbeat requests/sec; starts in 60 seconds → about 833 starts/sec; submissions in 10 seconds → 5,000 submissions/sec. Test a sustained 3-second editing interval as a separate severe case (~16,667 saves/sec). Include two changed questions/save, realistic essay payload percentiles, auth refresh, retry bursts and concurrent teacher activity. Drain final submission bursts within the latency/error limits; queueing grading does not remove submission database work.
+
+### 13.2 SLOs under the qualified envelope
+
+| Metric | Initial acceptance target |
+| :--- | :--- |
+| Save server latency (ingress through durable commit) | p95 ≤250 ms; p99 ≤750 ms |
+| Start / final submission server latency | p99 ≤1 second |
+| Browser-observed save confirmation | p99 ≤2 seconds in the declared regional network test profile; excludes offline periods |
+| Unexpected save/submit errors | <0.1% in healthy steady-state/burst tests; report overload and retry rates separately |
+| Exam-window API availability | 99.9% monthly target; include real dependency failures; report incident recovery separately |
+| Automatic expiry completion | p99 ≤30 seconds after deadline; acceptance cutoff still enforced at the deadline |
+| Objective grading | p99 ≤5 minutes for the declared exam/question mix after submit; manual grading excluded |
+| Data correctness | No missing acknowledged revisions, stale overwrites, duplicate terminal transitions or cross-tenant access |
+| Realtime capacity | 100,000 connections is a separate test target with specified rooms/fanout/egress, not automatically certified by HTTP tests |
+
+Report latency from ingress including pool waits; report retries, dropped/rejected requests, successful throughput and client-observed latency so load shedding cannot conceal failure. Capacity gates: 1k → 10k → 50k only after each passes on a recorded topology. Measure both balanced tenant distribution and a hot tenant using at least 50% of load. A tenant beyond its qualified quota must be placed/upgraded explicitly.
+
+### 13.3 Required test scenarios
+
+1. Representative full exam duration plus post-exam grading, then a 4-hour soak with large retained tenant datasets; monitor vacuum/WAL/disk and memory growth.
+2. Synchronized login/start, continuous edits, large essays, manual and automatic final submission, overlapping exams, teacher reports and shared-school NAT limits.
+3. Randomized out-of-order/duplicate requests, crash after commit before response, conflicting tabs/device takeover, clear-answer deltas and retries after receipt retrieval.
+4. Save/submit/expiry race including lock wait across deadline, deadline extensions, offline reconnect after cutoff, and pending attachment scan.
+5. Kill API/worker/pooler; fail over PostgreSQL and Redis; lose queue contents; interrupt pub/sub; exhaust bounded queues; delay catalog; remove Spot nodes. Verify correctness and measured recovery, not just throughput.
+6. Tenant routing/header/JWT mismatch, DB-role isolation, unauthorized socket/file access, answer-key leakage and idempotency-key payload mismatch.
+7. Restore a tenant and a cell, reconcile outbox/external effects, and verify every acknowledged receipt against restored answers. Test migration canary failure and compatible rolling upgrade during active attempts.
+
+CI runs meaningful transaction/authorization integration tests against PostgreSQL and queue replay tests. Dedicated environments run load/failure/restore suites before capacity claims. Record scripts/seed, commit, dependency versions, region, instance/node topology, data volume, workload parameters, cost, percentiles and integrity assertions in a versioned report. No completed verification checkboxes until evidence exists.
+
+## 14. Infrastructure Planning & Cost
+
+The following are starting architectures for measurement, not guaranteed hardware sizing:
+
+| Gate | Starting architecture | Promotion condition |
 | :--- | :--- | :--- |
-| **Simultaneous Active Test-Takers** | **50,000+ Concurrent Students** | Stateless Fastify + HPA (4 ➔ 60 pods). |
-| **Autosave Request Latency** | **< 15ms (p99)** | In-memory Redis Hash buffer (sub-millisecond writes). |
-| **Question Download Latency** | **< 80ms (Global Edge)** | Cloudflare CDN edge caching for PDF & static assets. |
-| **Final Exam Submission Latency** | **< 25ms** | Non-blocking BullMQ job dispatch with Redlock idempotency. |
-| **Max Concurrent WebSocket Conns** | **100,000+ Connections** | Fastify WebSocket with Redis Pub/Sub adapter. |
-| **PostgreSQL Connection Ceiling** | **Max 30 physical conns / tenant** | PgBouncer transaction pooling. |
-| **Data Loss Tolerance (RPO)** | **0 seconds (Zero Loss)** | Redis in-memory persistence + browser IndexedDB local backup. |
+| Development | Single API/PostgreSQL/Redis allowed; synthetic data | Functional tests only; no HA claim |
+| 1,000 active attempts | Two on-demand API replicas across zones, separate critical workers, HA PostgreSQL cell, budgeted redundant poolers, separate cache/queue Redis, private storage/CDN | Full burst, durability and failover suite passes |
+| 10,000 | Increase measured API/worker capacity, split hot tenant cells, isolate reports, add realtime capacity independently | Pass 10k mixed-load and hot-tenant suite with failure headroom |
+| 50,000 aggregate | Multiple independently budgeted cells, pre-warmed node capacity, fair worker allocation and tested tenant placement | Pass 50k sustained/burst/failure suite; explicit largest-tenant quota |
 
----
+For an initial 1k benchmark, test API replicas at 2 vCPU/4 GiB each and PostgreSQL primary/standby at 4 vCPU/16 GiB each with provisioned SSD storage. Size workers and Redis from measured jobs/bytes and headroom; these numbers are experiments, not purchase commitments. Increase/decrease only from observed latency, saturation and one-failure results. Do not place all production dependencies on a single VM.
 
-### 14. Verification & Execution Checklist
-- [x] **Tenancy Isolation:** Physical DB per tenant implemented via dynamic connection manager.
-- [x] **High Concurrency & Load Smoothing:** PgBouncer transaction pooling + Redis write-behind buffer designed to handle 50,000+ concurrent test-takers.
-- [x] **Zero Data Loss:** Redis 50ms buffer + BullMQ async flush to PostgreSQL + client offline backup.
-- [x] **Security Hardened:** RS256 JWT, RBAC matrix, Rate-limiting, HMAC-SHA256 webhooks, and Helmet CSP headers.
-- [x] **Authoritative Clock:** Countdown managed exclusively by Redis deadline calculations.
-- [x] **Complete Drizzle Schema:** Fully specified with tables for Users, Accommodations, Academics, Question Bank, Exams, Attempts, Submissions, Evaluation, Live Classes, and Spot Assessments.
-- [x] **Environment Configs & Bootstrap:** Complete `.env.example`, `package.json`, and dynamic migration runners documented.
+Estimate monthly cost from region-specific current quotes and measured duty cycles: always-on API/gateway/workers, primary/standby/read replicas, Redis nodes and persistence, poolers, Kubernetes/control plane if used, load balancers/NAT, storage/IOPS, backups/cross-region replication, CDN and internet egress, logs/traces, SFU/TURN/recording, and support. Spot discounts apply only to eligible compute hours. Scheduled API scaling does not remove always-on database/HA cost. Keep estimates with date, provider, region, assumptions and range; no fixed 65–75% savings or unsupported monthly totals.
 
+## 15. Implementation Plan & Release Checklist
 
+1. Implement schema constraints/snapshots, verified tenant routing, bounded pools and migrations; document the cell budget.
+2. Implement transaction/receipt save and submission protocol, IndexedDB client reconciliation, device fencing and deadline sweeper.
+3. Implement outbox/inbox/consumer idempotency, grading, publication, audit and private attachment finalization.
+4. Deploy isolated workers/cache/queues, realtime resync and managed media integration; configure TLS, secret rotation and operator provisioning.
+5. Add telemetry, scheduled/reactive scaling, failover, backup/restore automation and load qualification reports.
+
+Backend build deliverables: distinct `server`, `realtime`, `worker-critical`, `worker-integration`, `worker-cpu`, `migrate`, and `provision` entrypoints; reviewed lockfile; generated/reviewed migrations; container resource requests/limits; versioned deployment/connection-budget configuration. Store non-secret examples for catalog endpoint, secret-manager references, cache/queue/pubsub endpoints, object bucket/CDN settings, JWT issuer/audience/key references, pool limits, request deadlines and region. Production startup must reject placeholder credentials, insecure TLS, unsupported schema versions and missing required durability configuration. Do not embed sample production passwords or a universal webhook secret.
+
+- [ ] Schema migrations and transactional save/submit invariants implemented and tested.
+- [ ] Frontend retry/offline/conflict/receipt UI verified against the same API contract.
+- [ ] Tenant placement, secret rotation, pool pruning and host-wide connection budget tested.
+- [ ] Outbox reconstruction, duplicate workers and missed-deadline recovery verified.
+- [ ] Tenant/role/file/socket isolation and integration replay tests passed.
+- [ ] HA failover and tenant/region restore evidence recorded with measured RPO/RTO.
+- [ ] 1k capacity gate passed; 10k/50k enabled only after their independent qualification.
+- [ ] Cost model and operational runbooks reviewed for the deployed topology.
+
+## 16. Technical References
+
+Implementation must pin and test the chosen versions. References checked during this revision:
+
+- [Node.js release status](https://nodejs.org/en/about/previous-releases): Node 24 LTS baseline.
+- [Fastify LTS policy](https://fastify.dev/docs/latest/Reference/LTS/): use supported Fastify 5 and compatible plugins.
+- [PgBouncer configuration](https://www.pgbouncer.org/config.html): per-pool/per-database limits and transaction pooling.
+- [PostgreSQL synchronous replication](https://www.postgresql.org/docs/current/warm-standby.html#SYNCHRONOUS-REPLICATION): commit/failover durability assumptions.
+- [BullMQ production guidance](https://docs.bullmq.io/guide/going-to-production): Redis policy, connections and worker operations.
+- [Socket.IO Redis adapter](https://socket.io/docs/v4/redis-adapter/): transport, routing and recovery constraints.
