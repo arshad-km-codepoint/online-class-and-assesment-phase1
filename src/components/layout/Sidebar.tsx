@@ -11,6 +11,7 @@ import {
   GraduationCap,
   Sparkles,
   SlidersHorizontal,
+  ScanLine,
 } from 'lucide-react';
 import { useExam } from '../../context/ExamContext';
 import type { ActiveNavTab } from '../../types';
@@ -62,6 +63,11 @@ export const Sidebar: React.FC = () => {
               id: 'create-online-class',
               label: 'Schedule Class',
               icon: <CalendarPlus size={17} />,
+            },
+            {
+              id: 'attendance',
+              label: 'Marker Attendance',
+              icon: <ScanLine size={17} />,
             },
           ],
         },

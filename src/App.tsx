@@ -12,6 +12,7 @@ import { OnlineClassesListView } from './views/OnlineClassesListView';
 import { OnlineClassAssessmentsView } from './views/OnlineClassAssessmentsView';
 import { CreateClassAssessmentView } from './views/CreateClassAssessmentView';
 import { CreateOnlineClassView } from './views/CreateOnlineClassView';
+import { AttendanceView } from './views/AttendanceView';
 import { LiveClassroomView } from './views/LiveClassroomView';
 
 // Parent & Student Views
@@ -53,6 +54,7 @@ const MainContent: React.FC = () => {
               {activeTab === 'question-pool' && <QuestionPoolView />}
               {activeTab === 'create-class-assessment' && <CreateClassAssessmentView />}
               {activeTab === 'create-online-class' && <CreateOnlineClassView />}
+              {activeTab === 'attendance' && <AttendanceView />}
 
               {/* Parent & Student Views */}
               {activeTab === 'student-online-classes' && <StudentOnlineClassesView />}
