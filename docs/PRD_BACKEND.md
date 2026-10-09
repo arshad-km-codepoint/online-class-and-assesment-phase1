@@ -1,8 +1,8 @@
 # Backend Product Requirements Document & Technical Architecture
 ## Online Class & Assessment Platform
 
-> **Version:** 2.0 — architecture revision, 2026-09-09\
-> **Status:** Implementation specification; capacity and recovery targets require verification.\
+> **Version:** 2.1 — current UI alignment, 2026-09-09\
+> **Status:** Proposed backend specification aligned by source inspection with the current UI; backend integration, capacity and recovery remain unverified.\
 > **Architecture:** Modular monolith with independently deployed API, realtime gateway, and worker processes.\
 > **Tenancy:** Database per institution, placed across bounded PostgreSQL clusters (“cells”).\
 > **Runtime:** Node.js 24 LTS, Fastify 5, TypeScript, Drizzle, PostgreSQL, PgBouncer, Redis, BullMQ, Socket.IO.\
@@ -10,11 +10,73 @@
 
 ## 1. Scope, Priorities & Capacity Contract
 
-Support curriculum, question pools, exam authoring and delivery, accommodations, objective and manual grading, four-stage result publication, live quizzes, attendance, file annotations, ERP integration, and LTI 1.3. Preserve these domain modules in one codebase with explicit service interfaces. API handlers must not execute PDF rendering, video processing, bulk reports, or grading loops.
+Phase 1 supports the mounted teacher/student dashboards, online class scheduling and participation, reusable class assessments, question pools, assessment sharing and identity verification, student responses and attachments, teacher review, scoreboard publication, and global/tenant configuration. Section 1.1 defines the verified scope. Standalone high-stakes exams, accommodations, proctor monitoring, four-stage result approval, document annotations, ERP synchronization and LTI remain future scope where identified below. Preserve domain boundaries in one codebase with explicit service interfaces. API handlers must not execute PDF rendering, video processing, bulk reports, or grading loops.
 
 Priority order: tenant/attempt authorization, acknowledged answer durability, consistent submission, availability, then latency and operating cost. Database-per-tenant is retained; it does not imply dedicated hardware or automatic regulatory compliance.
 
 Capacity is specified as **active exam attempts**, not total registered accounts or open browser tabs. Initial qualification is 1,000 active attempts; subsequent gates are 10,000 and 50,000 across multiple tenants/cells. A single 50,000-student tenant is a separate qualification, not implied by aggregate capacity. Section 13 defines the workload and release tests. No tier is certified by this PRD alone.
+
+### 1.1 Current UI audit and scope authority
+
+Verified on 2026-09-09 against mounted views in `src/App.tsx`, navigation in `src/components/layout/Sidebar.tsx`, handlers in `src/context/ExamContext.tsx`, and the source files below. This is a source-level feature audit, not a browser acceptance test or confirmation of working backend services. The application uses React context, mock data and selected localStorage persistence; existing types and unused context actions alone do not establish a reachable feature. `PRD_FRONTEND.md` describes a broader target architecture and is not evidence that those features exist today.
+
+**Scope precedence:** Sections 1.1–1.4 and 6.2 define current UI integration requirements. Architecture, security and durability requirements elsewhere remain applicable foundations. Sections 4.4–4.6 and the standalone exam/evaluation endpoints in 6.1 are future domain specifications; their workflows must not become prerequisites for the current class assessment UI. Section 5's persistence protocol must be adapted to live assessment attempts. ERP/LTI in 7.3 and accommodations in 4.1 are future scope. Infrastructure targets are proposed qualification targets, not UI features.
+
+| Current surface / source under `src/` | Observed feature | Backend requirement and implementation gap |
+| :--- | :--- | :--- |
+| `views/DashboardView.tsx` | Teacher summaries, class/assessment/pool shortcuts; student dashboard for selected child | Authorized summary queries derived from the same class, assessment and submission records; replace mock metrics |
+| `views/OnlineClassesListView.tsx`, `views/CreateOnlineClassView.tsx` | Search/status filters, schedule or launch now, duplicate/delete, meeting links; five-step scheduling form | Persist scheduling, recurrence, platform details, capacity, permissions, materials and notification preferences; provider provisioning and actual delivery are integrations to implement |
+| `views/StudentOnlineClassesView.tsx` | Student class list, join, materials and recordings | Filter by enrollment/linked child; authorize join and private downloads. Several media/download actions currently show toasts |
+| `views/LiveClassroomView.tsx`, `components/modals/LiveAssessmentCreatorModal.tsx` | Classroom controls, chat/participants/materials/assessment panels, whiteboard controls, quick assessment launch and review | Authoritative session/permissions, presence, chat, attendance, media tokens and assessment events. Mock participants and local controls are not a working media or collaborative whiteboard service |
+| `views/OnlineClassAssessmentsView.tsx` | Taxonomy/search/status filters, preview, edit, duplicate, delete, choose target class, launch, share and review | Standalone assessment library with optional online-class association; persist versions and submissions; do not require creating a standalone exam |
+| `views/CreateClassAssessmentView.tsx`, `utils/assessmentSections.ts` | Three-step authoring, draft/save/launch, instructions, timer/pass marks, preview, sections, question movement/reordering, pool selection | Persist ordered sections and question snapshots, including `poolQuestionId`; retain order and section membership across editing, preview, delivery and review |
+| `views/QuestionPoolView.tsx`, `components/QuestionPoolBrowser.tsx` | CRUD, taxonomy, text/tag search, type/difficulty/Bloom/level filters, bulk selection into assessment | Replace localStorage pool with tenant-scoped CRUD/search; copy selected questions into assessment versions so pool edits do not change launched content |
+| `components/AIQuestionGenerator.tsx` | Source-file selection, taxonomy and question distribution, generated preview/edit/remove, move to pool | Generation is simulated with timers. Implement asynchronous generation and reviewed bulk insertion; no automatic publication of generated questions |
+| `components/modals/ShareAssessmentModal.tsx` | QR generation/download, copy link, projector mode, target class and broadcast, simulated scan | QR rendering is client-side; implement secure link resolution and class dispatch. Generated `/assessments/live-gateway?assId=…&classId=…` is not a complete authenticated gateway flow |
+| `components/modals/StudentIdentityVerificationModal.tsx` | NFC/face selection, simulated matching, verified profile and proceed | Implement challenge-based verification and bind evidence to authenticated student/assessment. Demo card selection and timer-based face confidence are not identity proof |
+| `components/modals/LiveAssessmentStudentModal.tsx`, `components/common/QuestionStudentUpload.tsx` | Interactive responses, timer, submission summary, per-question and assessment attachments | Durable attempt/save/submit and server scoring; replace client-calculated authoritative scores and temporary/sample file URLs |
+| `components/modals/LiveAssessmentTeacherReviewModal.tsx` | Submission/progress review, response inspection, rough-work attachments, score override/reset, feedback, close and scoreboard publish | Paginated authorized review/progress, bounded audited grading updates and separate result visibility; no four-stage approval requirement |
+| `views/ConfigurationCenterView.tsx`, `types/config.ts` | Global/tenant scope, organization, section overrides, save/cancel/reset, dynamic parameters, provider settings | Versioned persistent config, effective inheritance, privileged global writes and write-only secrets; localStorage settings do not establish provider integration or policy enforcement |
+
+The teacher/student switch and active-child selector are prototype navigation. Production roles and parent-child access must come from authenticated server relationships. Students may join a class but must never invoke the teacher start/end operation, even though the prototype reuses `startLiveClass`.
+
+### 1.2 Data contracts required by the current UI
+
+Use `OnlineClass`, `CreateOnlineClassFormData`, `LiveInClassAssessment`, `LiveAssessmentSection`, `LiveAssessmentQuestion`, `LiveStudentAnswer`, `LiveAssessmentSubmission` and `LiveStudentProgressRecord` in `src/types/index.ts` as display-contract references. Normalize database IDs while returning labels expected by the UI; do not interpret a display class name as an enrollment authority.
+
+- **Classes:** Include academic year, grade/division, instructor display information, description/topics, UTC start/end plus IANA timezone, duration, recurrence (`none`, `daily`, `weekly`, `mwf`, `tts`, `custom`) and days, capacity, all ten `ClassroomPermissions` flags, material metadata, meeting/provider details and recording reference. Persist `notifyStudents`, `notifyParents`, `sendCalendarInvite`, `reminderMinutes` and link-generation choice from the scheduling form. Define occurrence IDs and timezone-aware recurrence expansion; scheduling currently creates one local class record. Enrollment/live-attendance counts are server-derived. `associatedExamId` is an optional future-domain link, not a mandatory class field.
+- **Academic taxonomy:** Board → class grade → subject → chapter → topic, plus academic year and division for class rosters. Supply the values currently seeded by `data/curriculumData.ts`; support custom topic text exposed by authoring without silently changing catalog hierarchy. Preserve difficulty, Bloom's six levels, Level 1–4 and tags separately from marks.
+- **Questions:** Current pool and assessment authoring expose `mcq`, `mmcq`, `fill_in_blanks`, `match_following`, `step_ordering`. `short_answer` remains in delivery/review types and legacy data, but is excluded by the current pool browser and has no current authoring control. Preserve read compatibility; `one_word`, `long_answer` and `essay` are future exam types. Store options/correct indices, MMCQ minimum selections, matching pair IDs/text, blank slot IDs/labels/prefix/suffix/answers and word bank, ordered/distractor steps, explanations, optional sample answer/keywords, upload allowance and upload instructions. Student delivery must omit grading keys, explanations and sample answers until permitted release; shuffle with stable IDs and a versioned index mapping.
+- **Sections:** Store stable section ID, optional title/description, section position, question position and section FK within the assessment version. There must be at least one section. Legacy missing/unknown section IDs map to the first section on import, matching `sectionIdFor`; new writes must validate membership. Removing a section moves its questions to a remaining section and preserves them. Pool selections receive fresh assessment question IDs and retain source provenance.
+- **Assessments:** Include optional online-class ID, title, board/grade/subject/chapter/topic, target-class display label, instructions, ordered sections/questions, duration in seconds (`0` untimed), calculated total marks, optional pass marks and full ISO timestamps. Store eligibility separately from the display `targetClass` string. Drafts may be incomplete; saving a ready assessment or launching validates all question structures and score bounds.
+- **Answers/submissions:** Persist each question's selected index/indices, matched-pair map, blank map, placed steps or text, attachment references, automated score, teacher override/reason and effective score. Persist submission feedback, `submitted`/`reviewed` state, verification reference and server-derived totals/percentage. Never accept client `studentId`, score, verification confidence or timestamps as authority. Distinguish per-question files from whole-submission attachments; expose upload metadata and authorized preview/download URLs.
+- **Progress:** Store attempt start/last activity, current question index, answered count, elapsed time, verification flags and submission reference. Return `not_started`, `in_progress`, `submitted` from roster/attempt state. Presence and progress are distinct from durable answers and from grading completion.
+- **Configuration:** Persist the sections in `GlobalAppConfig` and `TenantConfigRecord`, including organization and per-section override flags. Effective section = tenant section when overridden, otherwise current global section. Reset clears overrides while preserving organization identity; cancel writes nothing. Platform/integrations are global privileged settings. Provider credentials are secret references with masked/configured metadata in reads, never raw keys or service-account JSON. Dynamic parameters remain validated data, never executable code. Record revision, actor and audit trail; snapshot applicable policy into launched assessments/attempts.
+
+### 1.3 Lifecycle and prototype discrepancies to resolve during integration
+
+The current UI overloads `published`: `handleSaveToBank(false)` creates a reusable saved assessment with that status, while `publishAssessmentLeaderboard` also sets it to expose results. Model **library readiness**, **delivery state**, and **result visibility** independently. Proposed fields are `libraryState: draft|ready`, `deliveryState: idle|active|closed`, and `resultsPublishedAt: timestamp|null`. A frontend adapter may preserve existing badges, but must use explicit readiness/visibility fields for actions. A ready, never-launched library item must not be treated as a completed attempt or a published scoreboard.
+
+Required commands: save draft → mark ready → launch into an authorized class → close submissions → publish scoreboard. Immediate launch validates and marks ready atomically. Duplicating creates a new draft with new IDs and no attempts, progress, verification or publication state. Editing launched content requires a new version; repeating delivery creates a new run so prior submissions remain intact. Prototype deletion removes in-memory records; production must archive records with delivery evidence. A launch request must supply a valid class association or explicit standalone eligibility; never use the prototype fallback `cls-101`.
+
+The student modal currently initializes the timer with `durationSeconds || 180`, so an untimed value becomes 180 seconds; integration must preserve `0` as untimed. Its response state is shared by question type (for example one MCQ selection), so multiple questions of the same type require a question-ID-keyed answer map before general authored assessments are reliable. These are frontend integration gaps, not backend behavior to reproduce.
+
+The prototype replaces an existing student's submission and computes marks in the browser. Production permits one final submission per student/run, with idempotent retries returning the original receipt; corrections require a separate authorized audited operation. Timed attempts use a server deadline based on launch and snapshotted policy; untimed attempts close by teacher action. Apply Section 5 commit/receipt/revision rules to live attempts and return a resume snapshot. Closing races with submit under the same run/attempt locking protocol; reject writes after closure except a finalization already accepted by that protocol.
+
+Objective scoring parity: MCQ all-or-zero; MMCQ full marks for an exact set, proportional credit for a correct subset only when no incorrect option is selected; matching and blanks proportional to correct pairs/slots; ordering proportional to the consecutive correct prefix unless the full sequence is correct. The current modal rounds partial question marks to one decimal. Preserve that explicit rule using decimal arithmetic and validate denominators and duplicate selections. Legacy short-answer keyword/length scoring is a demo heuristic: require teacher review rather than treating it as reliable automated evaluation. Override/reset recalculates totals from effective question scores, records actor/reason/version and preserves the original automated score.
+
+The student modal currently shows immediate scores/solutions, while teacher review also offers scoreboard publication. Backend release policy must distinguish own provisional score from shared leaderboard/solutions. Default requirement: own provisional score may be returned after submission; answer keys and the class scoreboard require explicit teacher publication, and pending manual review must be labeled. This is an intentional integration correction to the prototype. QR possession does not waive enrollment or verification, and NFC/face evidence must use a short-lived server challenge; configuration-only manual bypass requires an authorized teacher and audit reason.
+
+### 1.4 Phase 1 acceptance criteria
+
+- Every mounted view loads authorized records after reload; lists, dashboard totals and review agree on the same records, with loading/empty/error handling in the integration.
+- Schedule and launch a class with all form fields retained; duplicate without attendance/recording history; student join cannot start/end or administer a class; material/recording access respects enrollment.
+- Create, edit and filter all five authorable question types; AI preview edits survive reviewed bulk insertion. Existing short-answer data remains readable without claiming new authoring support.
+- Save/reopen an assessment with multiple sections, moved/reordered questions and pool provenance; launching freezes the version. Editing/deleting a pool item does not change an existing run.
+- Saved-library publication does not release solutions. Share/QR resolves the intended assessment/class; another tenant, unlinked child, expired verification or ineligible student is rejected.
+- Answer, reconnect/resume, attach actual files and submit; duplicate requests return one receipt; timer expiry and teacher closure cannot lose acknowledged answers or permit later writes.
+- Teacher review displays correct progress, attachments and scores; override/reset recomputes totals and records audit history; close and scoreboard publication reach authorized students via events and snapshot recovery.
+- Configuration overrides inherit correctly after global changes and reset; unauthorized writes fail; secrets never appear in ordinary configuration responses.
 
 ## 2. Deployment, Tenancy & Connection Architecture
 
@@ -392,6 +454,8 @@ export const examResults = pgTable('exam_results', {
 ```
 
 ### 4.7 Online Classrooms & Live Interactive Assessments
+
+These baseline fragments are incomplete without the field contract in Section 1.2 and supporting tables in 4.8. In particular, the legacy assessment `status` is only a UI projection; persist the independent lifecycle fields in 1.3 on the library/run records.
 ```typescript
 export const onlineClasses = pgTable('online_classes', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -418,6 +482,8 @@ export const onlineClasses = pgTable('online_classes', {
     recordSession: boolean;
     requireWaitingRoom: boolean;
     autoAttendance: boolean;
+    enableQnA: boolean;
+    enableBreakoutRooms: boolean;
   }>(),
   materials: jsonb('materials'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -427,11 +493,18 @@ export const liveInClassAssessments = pgTable('live_in_class_assessments', {
   id: uuid('id').defaultRandom().primaryKey(),
   classId: uuid('class_id').references(() => onlineClasses.id),
   title: varchar('title', { length: 255 }).notNull(),
+  subjectId: uuid('subject_id').references(() => subjects.id),
+  board: text('board'),
+  classGrade: text('class_grade'),
+  chapterId: uuid('chapter_id').references(() => chapters.id),
+  targetClass: text('target_class'), // Display only; eligibility is a separate relationship
+  instructions: text('instructions'),
+  sections: jsonb('sections'), // Ordered stable IDs, title, description; see Section 1.2
   topic: varchar('topic', { length: 255 }).notNull(),
   durationSeconds: integer('duration_seconds').default(180), // 0 for untimed
   totalMarks: numeric('total_marks', { precision: 10, scale: 2 }).notNull(),
   passMarks: numeric('pass_marks', { precision: 10, scale: 2 }),
-  status: varchar('status', { length: 32 }).default('draft'), // draft, active, closed, published
+  status: varchar('status', { length: 32 }).default('draft'), // Legacy UI projection; separate readiness/delivery/publication per Section 1.3
   launchedAt: timestamp('launched_at', { withTimezone: true }),
   questions: jsonb('questions'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -471,7 +544,10 @@ The snippets above require the following schema work before implementation is co
 | `enrollments` | Required user, academic year, class, division references; unique active membership as defined by school policy; eligibility query indexes |
 | `teacher_assignments`, `parent_student_links` | Explicit relationships for object authorization; unique relationship tuples |
 | `class_attendance` | Unique `(online_class_id, student_id)`; first/last seen, attendance duration and source; distinct append-only attendance events if audit required |
-| `live_assessment_submissions` | Unique `(assessment_id, student_id)` for single-attempt policy; immutable assessment question version and stable option IDs; receipt/revision protocol for resubmission |
+| `live_assessment_versions`, `live_assessment_runs`, `live_attempts` | Immutable ordered question/section snapshot and policy; run references version and class/eligibility; attempt unique `(run_id, student_id)`; server deadline, state, revisions and receipts per Section 5 |
+| `live_assessment_submissions` | Unique `(run_id, student_id)` for single-attempt policy; attempt/version FKs; attachment and verification references; effective/automated scores, overrides and audit revisions; idempotent final submission |
+| `online_classes`, `class_occurrences`, `class_materials` | All scheduling fields in Section 1.2, recurrence/occurrence identity, notification preferences, recording reference, private material metadata; attendance keyed to occurrence |
+| `global_config`, `tenant_config`, `verification_challenges`, `assessment_shares` | Revisioned configuration and override sections; secret references; expiring actor/assessment-bound verification and share scope; audit changes |
 | `attachments` | Owner/tenant/attempt/question IDs, object key, checksum, byte size, media type, scan state, upload expiry, finalization time; unique object key; private storage |
 | `audit_events` | Actor, scope, action, before/after references, reason, request ID and timestamp; append-only permissions and retention |
 | `integration_inbox` | Unique `(integration_id, external_event_id)`; payload hash, received/processed timestamps and failure status |
@@ -593,13 +669,13 @@ src/
 - `POST /` - Create question with specific options, correct answers, rubrics, and taxonomy tags.
 - `POST /ai-generate` - AI-assisted question generation based on subject, chapter, and Bloom's target.
 
-#### Exam Management (`/api/v1/exams`)
+#### Future: Exam Management (`/api/v1/exams`)
 - `POST /` - Multi-step exam configuration (Basic details, recipients, academic map, question source, marks distribution, controls).
 - `POST /:id/upload-pdf` - Presigned upload URL + paper page metadata extraction.
 - `POST /:id/publish` - Transitions exam to `scheduled` or `live` and dispatches notifications.
 - `GET /student/available` - Filtered list of upcoming, active, and completed exams for authenticated student.
 
-#### Exam Delivery Engine (`/api/v1/exam-delivery`)
+#### Future: Standalone Exam Delivery Engine (`/api/v1/exam-delivery`)
 - `POST /:examId/start` - Idempotent eligibility check and durable attempt/deadline/manifest creation; returns existing active attempt on retry.
 - `POST /:attemptId/auto-save` - Versioned delta save; acknowledges only after database commit (Section 5).
 - `POST /:attemptId/heartbeat` - Proctoring telemetry ping (tab switches, full-screen compliance, face presence).
@@ -607,7 +683,7 @@ src/
 - `GET /:attemptId` - Authoritative resume snapshot, deadline, session epoch, revisions, manifest, and submission receipt.
 - `POST /:attemptId/takeover` - Explicit authenticated device takeover; increments session epoch under the attempt lock.
 
-#### Evaluation & 4-Step Approval (`/api/v1/evaluation`)
+#### Future: Evaluation & 4-Step Approval (`/api/v1/evaluation`)
 - `GET /dashboard` - Filterable evaluation dashboard (`Not Started`, `In Progress`, `Completed`, `Published`).
 - `GET /submissions/:id` - Full evaluation session loading student answers, attachments, rubrics, and model answers.
 - `POST /submissions/:id/grade-question` - Score allocation, rubric point award, teacher remarks.
@@ -618,10 +694,34 @@ src/
 #### Live Classroom & Real-Time Assessment (`/api/v1/live-classroom`)
 - `POST /classes` - Schedule virtual lecture with platform configs (In-App, Meet, Zoom, Teams).
 - `POST /classes/:id/launch-assessment` - Push real-time interactive assessment to connected students.
-- `POST /assessments/:id/submit` - Ingest student live quiz answer with smart card NFC or Face ID payload.
+- `POST /assessments/:id/submit` - Resolve the authorized active run and use the durable submission contract in Section 6.2; reference verified server evidence, not client identity claims.
 - `POST /assessments/:id/override` - Teacher live score override and instant score broadcasting.
 
 ---
+
+### 6.2 Proposed Phase 1 API contract mapped to current UI
+
+These are required backend endpoints, not existing services. All paths below are relative to `/api/v1`. Keep the four existing `/live-classroom` routes in 6.1 as compatibility adapters to the same services; do not implement competing assessment stores. List endpoints accept bounded pagination and return `{ items, nextCursor, total }`; mutations return the canonical updated resource and revision. Student DTOs omit other students' personal information and protected grading content. Reject unauthorized requests, invalid fields and stale revisions with structured errors (`code`, `message`, optional `fieldErrors`, `requestId`); use `409` for revision/lifecycle conflicts. Save errors must not produce success toasts.
+
+| UI operation | Proposed endpoints | Required behavior |
+| :--- | :--- | :--- |
+| Session, active student, dashboard | `GET /me`, `GET /me/children`, `GET /dashboard?studentId=…` | Authenticated identity/roles; linked-child checks; role-scoped counts and recent records. A parent may view a child's data but cannot submit as the child |
+| Taxonomy and rosters | `GET /academic/taxonomy`, `GET /academic/classes/:id/students` | Cascading board/grade/subject/chapter/topic choices and authorized enrollment records |
+| Class list/detail/create | `GET /online-classes`, `GET /online-classes/:id`, `POST /online-classes` | Search/status/subject/date and authorized student filters; persist the scheduling DTO in 1.2; launch-now invokes the same start service atomically or returns explicit provisioning state |
+| Class lifecycle | `PATCH /online-classes/:id`, `POST /online-classes/:id/duplicate`, `DELETE /online-classes/:id`, `POST /online-classes/:id/start`, `POST /online-classes/:id/end` | Revision-checked authorized staff operations; scheduled/live/completed/cancelled state validation; preserve attendance/history on archive |
+| Student join and classroom panels | `POST /online-classes/:id/join`, `POST /online-classes/:id/leave`, `GET /online-classes/:id/participants`, `GET /online-classes/:id/messages`, `POST /online-classes/:id/messages`, `GET /online-classes/:id/materials`, `GET /online-classes/:id/recording` | Enrollment/capacity/waiting-room checks; short-lived media credentials; permission-checked chat and private file access. Join never changes class lifecycle |
+| Pool CRUD/search | `GET /question-pool`, `GET /question-pool/:id`, `POST /question-pool`, `PATCH /question-pool/:id`, `DELETE /question-pool/:id`, `POST /question-pool/bulk` | Filters: text, board, classGrade, subject/chapter/topic IDs or validated labels, type, difficulty, Bloom, level and tags. Validate each question shape; bulk save is atomic or returns explicit per-item outcomes |
+| AI generation | `POST /question-pool/ai-generate`, `GET /question-pool/ai-jobs/:id` | Return `202` job ID; source attachment references, taxonomy and per-type distribution input; progress/failure/result; generated candidates enter the pool only through explicit reviewed save |
+| Assessment library | `GET /class-assessments`, `GET /class-assessments/:id`, `POST /class-assessments`, `PATCH /class-assessments/:id`, `DELETE /class-assessments/:id`, `POST /class-assessments/:id/duplicate` | Search/taxonomy/status filtering, complete ordered authoring snapshot, draft/ready distinction; archive history-bearing records |
+| Launch and sharing | `POST /class-assessments/:id/launch`, `POST /class-assessments/:id/shares`, `GET /assessment-shares/:token` | Launch body includes target online-class ID and expected version; return run ID. Share metadata resolves the intended assessment/class with expiry/revocation and eligibility; QR is a client rendering of the returned URL |
+| Verification | `POST /assessment-runs/:id/verification-challenges`, `POST /verification-challenges/:id/verify` | Challenge-bound NFC/face provider evidence, expiry and replay checks; return restricted verified profile/reference. Manual bypass, if enabled, is a separate privileged audited method |
+| Attempt start/resume/save/submit | `POST /assessment-runs/:id/attempts`, `GET /live-attempts/:id`, `PATCH /live-attempts/:id/answers`, `POST /live-attempts/:id/submit` | Return run/version, sanitized ordered questions, saved responses, server time/deadline, revision and receipt. Saves use per-question revisions and idempotency; final submit commits answers, attachment associations, state and outbox before acknowledgment |
+| Live progress and review | `POST /live-attempts/:id/progress`, `GET /assessment-runs/:id/progress`, `GET /assessment-runs/:id/submissions`, `GET /live-submissions/:id` | Bound progress frequency; scope to student owner or assigned teacher; return roster progress plus full responses/attachment metadata for review |
+| Grading, closure and scoreboard | `PATCH /live-submissions/:id/review`, `POST /assessment-runs/:id/close`, `POST /assessment-runs/:id/publish-scoreboard`, `GET /assessment-runs/:id/scoreboard` | Review accepts question overrides/reset, feedback, expected revision and reason; server recalculates totals. Close serializes with submission. Publication sets result visibility independently of library readiness; return only permitted scoreboard fields |
+| Attachments/materials | `POST /uploads`, `POST /uploads/:id/finalize`, `DELETE /uploads/:id`, `GET /attachments/:id/download` | Purpose/owner/question scope, upload limits/type checks, signed upload, verified object/scan state and authorized download. Submission attaches finalized IDs, never arbitrary client URLs. Current rough-work helper advertises PNG/JPG/PDF up to 10 MB; enforce a documented purpose-specific policy |
+| Configuration | `GET /configuration/global`, `PATCH /configuration/global`, `GET /configuration/tenants`, `GET /configuration/tenants/:id`, `PATCH /configuration/tenants/:id`, `POST /configuration/tenants/:id/reset`, `GET /configuration/effective` | Global privilege versus tenant admin scope, revision checks, section-level overrides, organization preservation, validated dynamic parameters and redacted secret metadata |
+
+Realtime notifications must include `eventId`, resource/run ID, revision and server timestamp. Required event families: class state/permissions, participant presence, chat message, assessment launched/closed, progress changed, submission accepted/reviewed and scoreboard published. Authorize class/run subscriptions and recover missed events through canonical GET snapshots. Do not broadcast answers, raw verification evidence or unpublished scores to the class channel. Student answer acknowledgment remains an HTTP database receipt, not an event delivery acknowledgment.
 
 ## 7. Asynchronous Work & Integration Reliability
 
@@ -787,7 +887,7 @@ Estimate monthly cost from region-specific current quotes and measured duty cycl
 
 ## 15. Implementation Plan & Release Checklist
 
-1. Implement schema constraints/snapshots, verified tenant routing, bounded pools and migrations; document the cell budget.
+1. Implement the Phase 1 contracts in Sections 1.2 and 6.2: identity/rosters/taxonomy, config, class scheduling, pool CRUD and assessment library. Implement schema constraints/snapshots, verified tenant routing, bounded pools and migrations; document the cell budget.
 2. Implement transaction/receipt save and submission protocol, IndexedDB client reconciliation, device fencing and deadline sweeper.
 3. Implement outbox/inbox/consumer idempotency, grading, publication, audit and private attachment finalization.
 4. Deploy isolated workers/cache/queues, realtime resync and managed media integration; configure TLS, secret rotation and operator provisioning.
@@ -795,6 +895,8 @@ Estimate monthly cost from region-specific current quotes and measured duty cycl
 
 Backend build deliverables: distinct `server`, `realtime`, `worker-critical`, `worker-integration`, `worker-cpu`, `migrate`, and `provision` entrypoints; reviewed lockfile; generated/reviewed migrations; container resource requests/limits; versioned deployment/connection-budget configuration. Store non-secret examples for catalog endpoint, secret-manager references, cache/queue/pubsub endpoints, object bucket/CDN settings, JWT issuer/audience/key references, pool limits, request deadlines and region. Production startup must reject placeholder credentials, insecure TLS, unsupported schema versions and missing required durability configuration. Do not embed sample production passwords or a universal webhook secret.
 
+- [ ] All current UI acceptance criteria in Section 1.4 passed; prototype simulations replaced or explicitly unavailable.
+- [ ] Readiness, delivery and scoreboard visibility separated; future exam/approval modules are not Phase 1 dependencies.
 - [ ] Schema migrations and transactional save/submit invariants implemented and tested.
 - [ ] Frontend retry/offline/conflict/receipt UI verified against the same API contract.
 - [ ] Tenant placement, secret rotation, pool pruning and host-wide connection budget tested.

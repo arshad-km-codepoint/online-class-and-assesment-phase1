@@ -164,7 +164,7 @@ export const Sidebar: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-1">
                 <span className="font-extrabold text-[var(--text-primary)] text-sm tracking-tight truncate">
-                  CampusEnlight
+                  TrackMySchool Neo
                 </span>
                 <Sparkles size={13} className="text-[var(--primary)] shrink-0" />
               </div>

@@ -122,7 +122,7 @@ export interface TenantConfigRecord {
 
 export const INITIAL_GLOBAL_CONFIG: GlobalAppConfig = {
   platform: {
-    platformName: 'CampusEnlight Multi-Tenant Education Suite',
+    platformName: 'TrackMySchool Neo Multi-Tenant Education Suite',
     systemVersion: 'v4.8.0-LTS',
     defaultLanguage: 'English (US)',
     masterTimezone: 'Asia/Kolkata (IST)',

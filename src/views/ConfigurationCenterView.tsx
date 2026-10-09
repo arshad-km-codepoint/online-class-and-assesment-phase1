@@ -1515,7 +1515,7 @@ export const ConfigurationCenterView: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
-                      Campus Enlight Core System JWT Key
+                      TrackMySchool Neo Core System JWT Key
                     </label>
                     <div className="relative">
                       <input
