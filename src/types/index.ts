@@ -309,6 +309,7 @@ export type ActiveNavTab =
   | 'create-class-assessment'
   | 'question-pool'
   | 'create-online-class'
+  | 'attendance'
   | 'live-classroom'
   | 'exam-scheduling'
   | 'exam-monitoring'
@@ -1221,3 +1222,6 @@ export interface PoolQuestion extends LiveAssessmentQuestion {
   tags?: string[];
 }
 
+
+// QR Attendance: classId -> studentId -> time marked (ISO string)
+export type AttendanceRecords = Record<string, Record<string, { markedAt: string; method: 'marker' | 'manual' }>>;

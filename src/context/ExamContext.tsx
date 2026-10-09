@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   ActiveNavTab,
+  AttendanceRecords,
   PortalMode,
   Student,
   Exam,
@@ -75,6 +76,7 @@ import {
   mockAccommodations as initialAccommodations,
   mockExamSections as initialExamSections,
   mockOnlineClasses as initialOnlineClasses,
+  mockEligibleStudents as initialEligibleStudents,
   mockLiveAssessments as initialLiveAssessments,
 } from '../data/mockData';
 
@@ -259,6 +261,12 @@ interface ExamContextType {
 
   // Online Classes & Virtual Lectures
   onlineClasses: OnlineClass[];
+  attendance: AttendanceRecords;
+  markerAllocations: Record<string, number>;
+  /** Assigns an ArUco marker to a student (null clears). Returns false when another student already holds it. */
+  allocateMarker: (studentId: string, markerId: number | null) => boolean;
+  autoAllocateMarkers: (studentIds: string[], maxMarkerId: number) => void;
+  setAttendanceStatus: (classId: string, studentId: string, present: boolean, method?: 'marker' | 'manual') => void;
   activeLiveClass: OnlineClass | null;
   setActiveLiveClass: (c: OnlineClass | null) => void;
   addOnlineClass: (newClass: Omit<OnlineClass, 'id' | 'createdAt'>) => string;
@@ -365,6 +373,7 @@ const VALID_TEACHER_TABS: ActiveNavTab[] = [
   'online-class-assessments',
   'create-class-assessment',
   'create-online-class',
+  'attendance',
   'live-classroom',
   'settings',
 ];
@@ -512,6 +521,46 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [studentExamSubmitted, setStudentExamSubmitted] = useState<boolean>(false);
   // Online Classes & Virtual Lectures State
   const [onlineClasses, setOnlineClasses] = useState<OnlineClass[]>(initialOnlineClasses);
+  const [attendance, setAttendance] = useState<AttendanceRecords>({});
+  // Sample allocation so the demo works out of the box: roster order -> marker 1, 2, 3...
+  const [markerAllocations, setMarkerAllocations] = useState<Record<string, number>>(() =>
+    Object.fromEntries(initialEligibleStudents.map((s, i) => [s.id, i + 1]))
+  );
+  const allocateMarker = (studentId: string, markerId: number | null) => {
+    if (markerId !== null && Object.entries(markerAllocations).some(([sid, mid]) => mid === markerId && sid !== studentId)) {
+      return false;
+    }
+    setMarkerAllocations((prev) => {
+      const next = { ...prev };
+      if (markerId === null) delete next[studentId];
+      else next[studentId] = markerId;
+      return next;
+    });
+    return true;
+  };
+  const autoAllocateMarkers = (studentIds: string[], maxMarkerId: number) => {
+    setMarkerAllocations((prev) => {
+      const next = { ...prev };
+      const used = new Set(Object.values(next));
+      let candidate = 1;
+      for (const sid of studentIds) {
+        if (next[sid] !== undefined) continue;
+        while (used.has(candidate) && candidate <= maxMarkerId) candidate++;
+        if (candidate > maxMarkerId) break;
+        next[sid] = candidate;
+        used.add(candidate);
+      }
+      return next;
+    });
+  };
+  const setAttendanceStatus = (classId: string, studentId: string, present: boolean, method: 'marker' | 'manual' = 'manual') => {
+    setAttendance((prev) => {
+      const forClass = { ...(prev[classId] ?? {}) };
+      if (present) forClass[studentId] = { markedAt: new Date().toISOString(), method };
+      else delete forClass[studentId];
+      return { ...prev, [classId]: forClass };
+    });
+  };
   const [activeLiveClass, setActiveLiveClass] = useState<OnlineClass | null>(
     initialOnlineClasses.find((c) => c.status === 'live') || null
   );
@@ -1943,6 +1992,11 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Online Classes & Virtual Lectures
         onlineClasses,
+        attendance,
+        markerAllocations,
+        allocateMarker,
+        autoAllocateMarkers,
+        setAttendanceStatus,
         activeLiveClass,
         setActiveLiveClass,
         addOnlineClass,
